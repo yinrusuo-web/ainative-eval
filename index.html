@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>职业健康事业部 · AINative 落地应用评价系统</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root {
   --primary: #1a56db; --primary-dark: #1e429f; --primary-light: #e1effe;
@@ -394,9 +395,16 @@ select.form-control { cursor: pointer; }
       <div class="card">
         <div class="card-header">
           <span class="card-title">成员名单</span>
-          <button class="btn btn-primary btn-sm" onclick="openAddMember()">+ 添加成员</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" onclick="downloadMemberTemplate()">📄 下载导入模板</button>
+            <label class="btn btn-success btn-sm" style="cursor:pointer">📥 Excel 导入
+              <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleMemberImport(this)">
+            </label>
+            <button class="btn btn-primary btn-sm" onclick="openAddMember()">+ 添加成员</button>
+          </div>
         </div>
         <div class="card-body">
+          <div id="import-result" style="display:none;margin-bottom:14px"></div>
           <div class="search-bar">
             <input type="text" class="form-control" id="member-search" placeholder="搜索姓名或小组…" oninput="renderMembers()">
           </div>
@@ -825,6 +833,108 @@ function clearAllData() {
   location.reload();
 }
 
+// ============================================================
+// EXCEL MEMBER IMPORT
+// ============================================================
+// 下载模板：生成 姓名/岗位/小组/评价模板名称 四列
+function downloadMemberTemplate() {
+  const headers = ['姓名', '岗位', '小组', '评价模板名称'];
+  // 加一条示例行帮助理解
+  const sample = [
+    ['张三', '后端开发', '研发组', '成员评价表'],
+    ['平台研发组', '', '研发组', '团队评价表'],
+    ['', '', '', ''],  // 空行
+    ['说明：', '① 第1列为姓名（必填）', '② 评价模板名称需与系统一致：成员评价表 / 团队评价表', '③ 同名成员将跳过']
+  ];
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...sample]);
+  // 设置列宽
+  ws['!cols'] = [{wch:14}, {wch:16}, {wch:14}, {wch:24}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '成员名单');
+  XLSX.writeFile(wb, '成员名单导入模板.xlsx');
+}
+
+function handleMemberImport(fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if (rows.length < 2) { alert('文件内容为空，请填写后再导入。'); fileInput.value=''; return; }
+      // 表头归一化：去除空白
+      const header = rows[0].map(h => String(h).trim());
+      const idx = name => header.findIndex(h => h === name);
+      const nameCol = idx('姓名');
+      const posCol = idx('岗位');
+      const groupCol = idx('小组');
+      const tmplCol = idx('评价模板名称');
+      if (nameCol < 0) { alert('未找到"姓名"列，请检查表头。'); fileInput.value=''; return; }
+
+      // 预构建模板名称→ID 映射（精确匹配 + 去除空白）
+      const tmplMap = {};
+      for (const t of appState.templates) {
+        tmplMap[t.name.trim()] = t.id;
+        tmplMap[t.name.trim().replace(/\s/g,'')] = t.id;
+      }
+
+      const existingNames = new Set(appState.members.map(m => m.name.trim()));
+      const added = []; const skippedDup = []; const skippedTmpl = []; const skippedInvalid = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const name = String(row[nameCol]||'').trim();
+        if (!name) continue;  // 空行跳过
+        // 检测说明行（包含"说明"或"①"等字样）
+        if (/说明|^\(\d\)|^[①②③]/.test(name)) continue;
+        const position = posCol >= 0 ? String(row[posCol]||'').trim() : '';
+        const group = groupCol >= 0 ? String(row[groupCol]||'').trim() : '';
+        const tmplName = tmplCol >= 0 ? String(row[tmplCol]||'').trim() : '';
+
+        if (existingNames.has(name)) { skippedDup.push(name); continue; }
+
+        let templateId = null;
+        if (tmplName) {
+          templateId = tmplMap[tmplName] || tmplMap[tmplName.replace(/\s/g,'')];
+          if (!templateId) { skippedTmpl.push(`${name}（模板：${tmplName}）`); continue; }
+        }
+        appState.members.push({
+          id: 'mem-' + uid(),
+          name, position, group,
+          templateId
+        });
+        existingNames.add(name);
+        added.push(name);
+      }
+
+      saveData();
+      renderMembers();
+
+      // 显示导入结果
+      const result = document.getElementById('import-result');
+      let html = '';
+      if (added.length > 0) html += `<div class="alert alert-success">✅ 成功导入 <strong>${added.length}</strong> 位成员：${escHtml(added.slice(0,5).join('、'))}${added.length>5?' 等':''}</div>`;
+      if (skippedDup.length > 0) html += `<div class="alert alert-warning">⚠️ 跳过 <strong>${skippedDup.length}</strong> 个已存在成员：${escHtml(skippedDup.slice(0,5).join('、'))}${skippedDup.length>5?' 等':''}</div>`;
+      if (skippedTmpl.length > 0) html += `<div class="alert alert-danger">❌ 跳过 <strong>${skippedTmpl.length}</strong> 个模板名不匹配：${escHtml(skippedTmpl.slice(0,3).join('、'))}${skippedTmpl.length>3?' 等':''}</div>`;
+      if (added.length === 0 && skippedDup.length === 0 && skippedTmpl.length === 0) {
+        html = `<div class="alert alert-warning">⚠️ 没有可导入的有效数据</div>`;
+      }
+      result.innerHTML = html;
+      result.style.display = 'block';
+      setTimeout(() => result.style.display = 'none', 12000);
+
+    } catch(err) {
+      alert('文件解析失败：' + err.message);
+    } finally {
+      fileInput.value = '';  // 清空，允许重复选择同一文件
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 function showLoading(show) { document.getElementById('loadingOverlay').classList.toggle('show', show); }
 
 // ============================================================
@@ -976,7 +1086,7 @@ function initDefaultData() {
   if (appState.templates.length === 0) {
     appState.templates = [
       {
-        id: 'tmpl-team-default', name: '团队季度评价', type: 'team', totalScore: 100,
+        id: 'tmpl-team-default', name: '团队评价表', type: 'team', totalScore: 100,
         questions: [
           {id:'q1',title:'节点完整性',desc:'"一张图"是否完整涵盖需求分析、产品设计、代码开发等8个关键节点',maxScore:10},
           {id:'q2',title:'AI介入清晰度',desc:'是否在图上明确标注各节点具体使用的AI工具及其介入程度',maxScore:20},
@@ -987,7 +1097,7 @@ function initDefaultData() {
         ]
       },
       {
-        id: 'tmpl-member-default', name: '成员月度评价', type: 'member', totalScore: 100,
+        id: 'tmpl-member-default', name: '成员评价表', type: 'member', totalScore: 100,
         questions: [
           {id:'q1',title:'场景明确性',desc:'是否清晰逐一地阐述了在哪个具体环节使用了什么具体的AI能力或工具',maxScore:30},
           {id:'q2',title:'成果量化度',desc:'必须提供真实的量化支撑（如工时缩减比例、Bug修复速度等）',maxScore:30},
@@ -1200,10 +1310,11 @@ function openAddMember(editId) {
   document.getElementById('add-member-name').value = m?.name||'';
   document.getElementById('add-member-position').value = m?.position||'';
   document.getElementById('add-member-group').value = m?.group||'';
-  // Fill template select
+  // Fill template select — 显示所有模板（成员+团队）
   const sel = document.getElementById('add-member-template');
+  const typeLabel = t => t.type==='team'?'🏢 团队评价表':'👤 成员评价表';
   sel.innerHTML = '<option value="">— 使用系统默认模板 —</option>' +
-    appState.templates.filter(t=>t.type==='member').map(t=>`<option value="${t.id}" ${m?.templateId===t.id?'selected':''}>${escHtml(t.name)}</option>`).join('');
+    appState.templates.map(t=>`<option value="${t.id}" ${m?.templateId===t.id?'selected':''}>${typeLabel(t)} · ${escHtml(t.name)}</option>`).join('');
   document.getElementById('modal-add-member').dataset.editId = editId||'';
   document.querySelector('#modal-add-member .modal-title').textContent = isEdit ? '编辑成员' : '添加成员';
   openModal('modal-add-member');
