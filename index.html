@@ -609,11 +609,28 @@ select.form-control { cursor: pointer; }
       </div>
       <div class="form-group">
         <label class="form-label">岗位</label>
-        <input type="text" class="form-control" id="add-member-position" placeholder="例如：后端开发、产品经理">
+        <select class="form-control" id="add-member-position">
+          <option value="">— 请选择岗位 —</option>
+          <option>后端开发</option>
+          <option>前端开发</option>
+          <option>软件测试</option>
+          <option>产品经理</option>
+          <option>研发主管</option>
+          <option>研发经理</option>
+          <option>运维</option>
+        </select>
       </div>
       <div class="form-group">
         <label class="form-label">小组 *</label>
-        <input type="text" class="form-control" id="add-member-group" placeholder="输入所属小组">
+        <select class="form-control" id="add-member-group">
+          <option value="">— 请选择小组 —</option>
+          <option>产品研发1组</option>
+          <option>产品研发2组</option>
+          <option>综合业务1组</option>
+          <option>综合业务2组</option>
+          <option>职业健康组</option>
+          <option>运维小组</option>
+        </select>
       </div>
       <div class="form-group">
         <label class="form-label">默认评价模板（成员用）</label>
@@ -1406,8 +1423,23 @@ function openAddMember(editId) {
   const isEdit = !!editId;
   const m = isEdit ? appState.members.find(x=>x.id===editId) : null;
   document.getElementById('add-member-name').value = m?.name||'';
-  document.getElementById('add-member-position').value = m?.position||'';
-  document.getElementById('add-member-group').value = m?.group||'';
+  // 岗位 / 小组：select。如果原值不在新选项里（例如老成员写的是"产品"、"开发"），
+  // 显示"— 历史值（不在新列表）：xxx —"提示用户重选，但不强制清空原值。
+  const fillSelectPreservingLegacy = (selId, val) => {
+    const sel = document.getElementById(selId);
+    if (!val) { sel.value = ''; return; }
+    const exists = [...sel.options].some(o => o.value === val && o.value !== '');
+    if (exists) {
+      sel.value = val;
+    } else {
+      // 插入一个特殊的"历史值"项作为占位，提交时会被丢弃
+      const legacyOpt = new Option(`— 历史值（请重选）：${val} —`, '__legacy__');
+      sel.insertBefore(legacyOpt, sel.options[1] || null);
+      sel.value = '__legacy__';
+    }
+  };
+  fillSelectPreservingLegacy('add-member-position', m?.position||'');
+  fillSelectPreservingLegacy('add-member-group', m?.group||'');
   // Fill template select — 显示所有模板（成员+团队）
   const sel = document.getElementById('add-member-template');
   const typeLabel = t => t.type==='team'?'🏢 团队评价表':'👤 成员评价表';
@@ -1422,15 +1454,24 @@ function editMember(id) { openAddMember(id); }
 
 function addMember() {
   const name = document.getElementById('add-member-name').value.trim();
-  const position = document.getElementById('add-member-position').value.trim();
-  const group = document.getElementById('add-member-group').value.trim();
+  let position = document.getElementById('add-member-position').value;
+  let group = document.getElementById('add-member-group').value;
+  // 丢弃"历史值"占位（视为未选）
+  if (position === '__legacy__') position = '';
+  if (group === '__legacy__') group = '';
   const templateId = document.getElementById('add-member-template').value;
   if (!name) { alert('请输入姓名'); return; }
-  if (!group) { alert('请输入小组'); return; }
+  if (!group) { alert('请选择小组'); return; }
   const editId = document.getElementById('modal-add-member').dataset.editId;
   if (editId) {
     const m = appState.members.find(x=>x.id===editId);
-    if (m) { m.name=name; m.position=position; m.group=group; m.templateId=templateId||null; }
+    if (m) {
+      m.name = name;
+      // 宽松兼容：编辑老成员时，如果新值为空而原值非空，保留原值（避免误清空）
+      m.position = position || m.position || '';
+      m.group = group || m.group || '';
+      m.templateId = templateId || null;
+    }
   } else {
     appState.members.push({id:'mem-'+uid(), name, position, group, templateId: templateId||null});
   }
