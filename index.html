@@ -693,6 +693,7 @@ let currentTemplateId = null;
 let editingScoreId = null;        // 正在编辑的评分记录ID
 let editMode = false;             // 是否为修改模式
 let isAdminEditing = false;       // 是否为管理员修改
+let _initInProgress = false;      // ⚠️ init 阶段不允许推云端，防止新用户空数据覆盖服务端
 
 // ============================================================
 // DATA STORAGE
@@ -740,7 +741,12 @@ function buildPayload() {
 async function saveData() {
   const payload = buildPayload();
   lsWrite(payload);
-  pushToBin(payload).catch(e => console.warn('JSONBin 同步失败：', e.message));
+  // ⚠️ 防止新用户首次访问触发 initDefaultData/saveData 时把空数据覆盖云端
+  if (_initInProgress) {
+    console.log('⏸️ init 阶段跳过云端同步');
+  } else {
+    pushToBin(payload).catch(e => console.warn('JSONBin 同步失败：', e.message));
+  }
   return true;
 }
 
@@ -1230,7 +1236,9 @@ function initDefaultData() {
     const prev = cur.num === 1 ? {fy: cur.fy-1, num: 4} : {fy: cur.fy, num: cur.num-1};
     appState.quarters = [prev, cur];
   }
-  saveData();
+  // ⚠️ 不要在这里 saveData()，否则新用户会写入空默认数据，
+  // 导致后续的云端拉取条件 !lsRead() 变成 false，永远拿不到云端数据。
+  // 实际持久化交给 init() 里的云端 fetch 成功后处理。
 }
 
 // ============================================================
@@ -2178,6 +2186,8 @@ window.dumpMembers = function() {
 // INIT
 // ============================================================
 (async function init() {
+  _initInProgress = true;          // ⚠️ 防止 init 阶段推云端
+  try {
   loadData();
   initDefaultData();
   const imported = tryImportFromUrl();
@@ -2195,7 +2205,7 @@ window.dumpMembers = function() {
     fetchFromBin().then(remote => {
       if (remote && (remote.members || remote.relations || remote.templates)) {
         mergeRemote(remote);
-        lsWrite(buildPayload());
+        lsWrite(buildPayload()); // 写入 localStorage，新用户下次访问就有数据了
         setSyncStatus('ok', '✅ 已从云端加载数据');
         console.log('📥 首次访问从 JSONBin 拉到数据');
         // 同步刷新相关 UI
@@ -2213,6 +2223,9 @@ window.dumpMembers = function() {
   }
   populateQuarterSelect();
   refreshSyncStatus();
+  } finally {
+    _initInProgress = false;       // ⚠️ init 结束后允许正常推云端
+  }
 })();
 </script>
 </body>
