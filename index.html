@@ -421,7 +421,10 @@ select.form-control { cursor: pointer; }
       <div class="card">
         <div class="card-header">
           <span class="card-title">评分关系分配</span>
-          <button class="btn btn-primary btn-sm" onclick="openBatchRelation()">🔄 批量分配</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" onclick="showRelationsDebug()">🔍 调试：原始数据</button>
+            <button class="btn btn-primary btn-sm" onclick="openBatchRelation()">🔄 批量分配</button>
+          </div>
         </div>
         <div class="card-body">
           <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">设置评分人和被评人之间的对应关系。评分人登录后可在其小组范围内看到分配给他的待评分对象。</p>
@@ -1419,6 +1422,43 @@ function removeRelation(ev, evg, tid) {
   renderRelations();
 }
 
+// 调试：弹出窗口显示所有原始关系数据，便于排查"登录看不到任务"
+function showRelationsDebug() {
+  const rows = appState.relations.map((r,i) => ({
+    序号: i+1,
+    评分人: r.evaluator,
+    评分人小组: r.evaluatorGroup || '（空）',
+    被评人: r.targetName,
+    被评人ID: r.targetId,
+    类型: r.targetType
+  }));
+  const summary = `共 ${appState.relations.length} 条关系\n\n` +
+    `📊 按评分人分组：\n` +
+    Object.entries(
+      appState.relations.reduce((acc, r) => {
+        const k = `${r.evaluator}（${r.evaluatorGroup||'未填写小组'}）`;
+        acc[k] = (acc[k]||0) + 1;
+        return acc;
+      }, {})
+    ).map(([k,v]) => `  • ${k}：${v} 人`).join('\n');
+
+  // 用 textarea 显示 JSON，便于复制粘贴
+  const json = JSON.stringify(rows, null, 2);
+  const w = window.open('', '_blank', 'width=700,height=600');
+  if (!w) { alert('浏览器拦截了弹窗，请允许弹窗后重试。'); return; }
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>评分关系调试</title>
+    <style>body{font-family:monospace;padding:20px;background:#fafafa}
+    h2{margin-top:0}pre{background:#fff;border:1px solid #ddd;padding:14px;border-radius:6px;overflow:auto;font-size:12px;line-height:1.5}
+    .summary{background:#fffbe6;border:1px solid #ffe58f;padding:12px;border-radius:6px;margin-bottom:14px;white-space:pre-wrap;font-size:13px}
+    </style></head><body>
+    <h2>🔍 评分关系 — 原始数据</h2>
+    <div class="summary">${summary.replace(/</g,'&lt;')}</div>
+    <p style="font-size:12px;color:#888">下方为完整 JSON（可复制）</p>
+    <pre>${json.replace(/</g,'&lt;')}</pre>
+    </body></html>`);
+  w.document.close();
+}
+
 function openBatchRelation() {
   // Populate evaluator select
   const sel = document.getElementById('batch-rel-evaluator');
@@ -1510,7 +1550,20 @@ function evaluatorLogin() {
 
   const targets = getAssignedTargets(name, group);
   if (targets.length === 0) {
-    alert('当前季度没有分配给您评分的对象，请联系管理员。');
+    // 诊断：找姓名相同的关系，看看实际记录的小组名
+    const sameName = appState.relations.filter(r => r.evaluator === name);
+    if (sameName.length > 0) {
+      const groups = [...new Set(sameName.map(r => r.evaluatorGroup || '（未填写）'))];
+      const targetNames = [...new Set(sameName.map(r => r.targetName))];
+      alert(
+        `⚠️ 找到您的评分关系，但您输入的「所属小组」与系统记录不一致。\n\n` +
+        `📋 系统记录的小组：${groups.join('、')}\n` +
+        `👥 待评对象：${targetNames.slice(0,5).join('、')}${targetNames.length>5?' 等':''}（共 ${targetNames.length} 人）\n\n` +
+        `请按系统记录的小组名称重新输入，或联系管理员核对。`
+      );
+    } else {
+      alert('当前季度没有分配给您评分的对象，请联系管理员。');
+    }
     currentEvaluator = null; currentQuarter = null;
     sessionStorage.removeItem('eval');
     return;
@@ -1526,10 +1579,17 @@ function evaluatorLogout() {
 }
 
 function getAssignedTargets(evalName, evalGroup) {
-  return appState.relations.filter(r =>
-    (r.evaluator===evalName && r.evaluatorGroup===evalGroup) ||
-    (r.evaluator===evalName && !r.evaluatorGroup)
-  );
+  // 1) 精确匹配：姓名 + 小组
+  let exact = appState.relations.filter(r => r.evaluator===evalName && r.evaluatorGroup===evalGroup);
+  // 2) 兼容：关系里没填小组（只按姓名）
+  exact = exact.concat(appState.relations.filter(r => r.evaluator===evalName && !r.evaluatorGroup));
+  if (exact.length > 0) return exact;
+  // 3) 后备：仅按姓名匹配（兼容登录小组与系统记录不一致的情况）
+  const nameOnly = appState.relations.filter(r => r.evaluator===evalName);
+  if (nameOnly.length > 0) {
+    console.warn(`评分关系后备匹配：${evalName} 的小组不一致（输入：${evalGroup||'（空）'}）`);
+  }
+  return nameOnly;
 }
 
 function renderEvaluatorTargets() {
