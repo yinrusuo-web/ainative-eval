@@ -665,8 +665,9 @@ select.form-control { cursor: pointer; }
 // ============================================================
 const DEFAULT_CONFIG = {
   adminPassword: 'admin123',
-  binId: '',
-  masterKey: ''
+  // 🔗 JSONBin 配置（binId 公开，masterKey 完整版已填入）
+  binId: '6ab23c4fac6210605ae8a32c',
+  masterKey: '$2a$10$i7aVjFoFY1RNzy/nK677/O5OtZ.JG6IzGDtL7Zmp.soBJEB0vNpcK'
 };
 
 const LS_KEY = 'ainative-eval-v2';
@@ -2176,15 +2177,36 @@ window.dumpMembers = function() {
 // ============================================================
 // INIT
 // ============================================================
-(function init() {
+(async function init() {
   loadData();
   initDefaultData();
   const imported = tryImportFromUrl();
   if (imported) {
     console.log('📥 从分享链接导入了数据');
-    // 清除 URL 里的 share 参数（保留可读 URL）
     const url = new URL(location.href); url.searchParams.delete('share');
     history.replaceState(null, '', url.toString());
+  }
+  // 🔄 首次访问（localStorage 为空）时尝试从云端拉数据
+  // - binId 已写死在 DEFAULT_CONFIG，所有人可拉
+  // - 不阻塞页面（fire-and-forget，8 秒超时）
+  // - 本机已有数据时不再拉取，避免覆盖
+  if (!lsRead() && appState.config.binId) {
+    setSyncStatus('syncing', '正在从云端同步数据…');
+    fetchFromBin().then(remote => {
+      if (remote && (remote.members || remote.relations || remote.templates)) {
+        mergeRemote(remote);
+        lsWrite(buildPayload());
+        setSyncStatus('ok', '✅ 已从云端加载数据');
+        console.log('📥 首次访问从 JSONBin 拉到数据');
+        // 同步刷新相关 UI
+        populateQuarterSelect();
+      } else {
+        setSyncStatus('ok', '本地模式（云端为空）');
+      }
+    }).catch(e => {
+      console.warn('云端拉取失败：', e.message);
+      setSyncStatus('warn', '云端拉取失败，使用本地数据');
+    });
   }
   if (!checkAdminSession()) {
     showView('home');
