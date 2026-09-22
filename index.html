@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>职业健康事业部 · AINative 落地应用评价系统</title>
+<style>
+:root {
+  --primary: #1a56db;
+  --primary-dark: #1e429f;
+  --primary-light: #e1effe;
+  --success: #057a55;
+  --success-bg: #ecfdf5;
+  --danger: #c81e1e;
+  --danger-bg: #fef2f2;
+  --warning: #9a3412;
+  --warning-bg: #fffbeb;
+  --bg: #f9fafb;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  --text: #111827;
+  --text-muted: #6b7280;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ---- Header ---- */
+.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100; }
+.header .logo { font-size: 18px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+.header .logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.header .role-badge { background: var(--primary-light); color: var(--primary); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+
+/* ---- Container ---- */
+.container { max-width: 900px; margin: 32px auto; padding: 0 20px; }
+
+/* ---- Card ---- */
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
+.card-header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-size: 16px; font-weight: 600; }
+.card-body { padding: 24px; }
+
+/* ---- View hide/show ---- */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ---- Buttons ---- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .15s; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+.btn-outline:hover { background: var(--primary-light); }
+.btn-success { background: var(--success); color: white; }
+.btn-success:hover { background: #047857; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-secondary { background: #e5e7eb; color: var(--text); }
+.btn-secondary:hover { background: #d1d5db; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-block { width: 100%; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---- Form elements ---- */
+.form-group { margin-bottom: 18px; }
+.form-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
+.form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 7px; font-size: 14px; font-family: inherit; transition: border-color .15s; background: var(--surface); color: var(--text); }
+.form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,.12); }
+select.form-control { cursor: pointer; }
+
+/* ---- Tabs ---- */
+.tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 20px; gap: 0; }
+.tab-btn { padding: 9px 18px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-muted); transition: all .15s; }
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ---- Score table ---- */
+.score-section { margin-bottom: 28px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.score-section-header { background: #f8fafc; padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--text-muted); }
+.score-item { padding: 16px; border-bottom: 1px solid var(--border); }
+.score-item:last-child { border-bottom: none; }
+.score-item-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.score-item-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
+.score-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.score-opt { padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 13px; transition: all .12s; background: var(--surface); user-select: none; }
+.score-opt:hover { border-color: var(--primary); background: var(--primary-light); }
+.score-opt.selected { background: var(--primary); color: white; border-color: var(--primary); }
+.score-opt.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.score-detail { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+.total-bar { background: var(--primary-light); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; }
+.total-num { font-size: 22px; color: var(--primary); font-weight: 700; }
+
+/* ---- Alert ---- */
+.alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+.alert-success { background: var(--success-bg); color: var(--success); border: 1px solid #a7f3d0; }
+.alert-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid #fecaca; }
+.alert-warning { background: var(--warning-bg); color: var(--warning); border: 1px solid #fde68a; }
+
+/* ---- Table ---- */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th { background: #f8fafc; padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border); color: var(--text-muted); }
+.data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: #f8fafc; }
+
+/* ---- List ---- */
+.target-list { display: flex; flex-direction: column; gap: 10px; }
+.target-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); transition: all .15s; }
+.target-item:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+.target-item-info { display: flex; align-items: center; gap: 12px; }
+.target-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; color: white; flex-shrink: 0; }
+.target-avatar.member { background: #0ea5e9; }
+.target-avatar.team { background: #8b5cf6; }
+.target-name { font-weight: 600; font-size: 14px; }
+.target-group { font-size: 12px; color: var(--text-muted); }
+.target-status { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.status-badge { padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.status-badge.done { background: var(--success-bg); color: var(--success); }
+.status-badge.pending { background: var(--warning-bg); color: var(--warning); }
+
+/* ---- Admin stats ---- */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+.stat-num { font-size: 28px; font-weight: 700; color: var(--primary); }
+.stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+/* ---- Search ---- */
+.search-bar { display: flex; gap: 10px; margin-bottom: 16px; }
+.search-bar .form-control { flex: 1; }
+
+/* ---- Tag ---- */
+.tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: var(--primary-light); color: var(--primary); border-radius: 20px; font-size: 11px; font-weight: 500; }
+.tag-group { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: #f3f4f6; color: var(--text-muted); border-radius: 20px; font-size: 11px; font-weight: 500; }
+
+/* ---- Modal overlay ---- */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; align-items: center; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius); width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,.2); }
+.modal-header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-size: 16px; font-weight: 600; }
+.modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-muted); line-height: 1; }
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 24px; }
+.modal-footer { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+
+/* ---- Loading ---- */
+.loading-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,.85); z-index: 300; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
+.loading-overlay.show { display: flex; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Home ---- */
+.home-hero { text-align: center; padding: 48px 24px; }
+.home-hero h1 { font-size: 26px; font-weight: 700; margin-bottom: 10px; }
+.home-hero p { color: var(--text-muted); font-size: 15px; max-width: 480px; margin: 0 auto 32px; line-height: 1.6; }
+.home-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 640px; margin: 0 auto; }
+.home-card { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 28px 24px; text-align: center; cursor: pointer; transition: all .2s; }
+.home-card:hover { border-color: var(--primary); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.home-card-icon { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 14px; }
+.home-card-icon.evaluator { background: #dbeafe; }
+.home-card-icon.admin { background: #ede9fe; }
+.home-card h3 { font-size: 16px; margin-bottom: 6px; }
+.home-card p { font-size: 12px; color: var(--text-muted); }
+
+/* ---- Config form ---- */
+.config-section { background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius); padding: 16px; margin-bottom: 20px; font-size: 13px; }
+.config-section h4 { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #92400e; }
+.config-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.config-item { margin-bottom: 8px; }
+.config-key { font-weight: 500; color: var(--text-muted); font-size: 12px; }
+.config-val { font-family: monospace; background: white; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px; word-break: break-all; }
+
+/* ---- Checkbox list ---- */
+.checkbox-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.checkbox-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: background .1s; }
+.checkbox-item:hover { background: #f8fafc; }
+.checkbox-item input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+.checkbox-label { font-size: 13px; }
+.checkbox-sub { font-size: 11px; color: var(--text-muted); }
+
+/* ---- Avatar small ---- */
+.av-sm { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+
+/* ---- Empty state ---- */
+.empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
+.empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: .4; }
+.empty-state p { font-size: 13px; }
+
+/* ---- Mobile tip banner ---- */
+.mobile-tip { max-width: 640px; margin: 16px auto 0; padding: 12px 16px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 10px; color: #78350f; font-size: 13px; line-height: 1.7; }
+
+/* ---- Sync status bar ---- */
+.sync-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+.sync-bar.sync-ok { background: var(--success-bg); color: var(--success); border: 1px solid #a7f3d0; }
+.sync-bar.sync-error { background: var(--danger-bg); color: var(--danger); border: 1px solid #fecaca; }
+.sync-bar.sync-info { background: var(--primary-light); color: var(--primary); border: 1px solid #bfdbfe; }
+
+/* ---- Footer ---- */
+.footer { text-align: center; padding: 20px; font-size: 12px; color: var(--text-muted); }
+
+/* ---- Responsive ---- */
+@media (max-width: 600px) {
+  .home-cards { grid-template-columns: 1fr; }
+  .data-table { font-size: 12px; }
+  .data-table th, .data-table td { padding: 8px 6px; }
+  .config-row { grid-template-columns: 1fr; }
+  .card-body { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <span style="font-size:13px;color:var(--text-muted)">加载中…</span>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">★</div>
+    <span>AINative 落地应用评价</span>
+  </div>
+  <div class="header-right">
+    <span class="role-badge" id="headerRole" style="display:none"></span>
+    <button class="btn btn-secondary btn-sm" id="btnBackToHome" style="display:none" onclick="showView('home')">返回首页</button>
+    <button class="btn btn-secondary btn-sm" id="btnLogout" style="display:none" onclick="logout()">退出登录</button>
+  </div>
+</div>
+
+<!-- Container -->
+<div class="container">
+
+  <!-- ===== VIEW: HOME ===== -->
+  <div class="view active" id="view-home">
+    <div id="mobile-tip" class="mobile-tip" style="display:none">
+      📱 检测到您在移动设备上访问。建议使用 <strong>Chrome / Safari / 浏览器</strong> 打开链接；如使用微信打开，请点击右上角 ⋯ → <strong>在浏览器中打开</strong>，避免数据被自动清理。
+    </div>
+    <div class="card">
+      <div class="home-hero">
+        <h1>职业健康事业部</h1>
+        <p>季度 AINative 落地应用评价系统 — 团队版 / 成员版<br>纯前端部署，链接即用，数据自动汇总</p>
+        <div class="home-cards">
+          <div class="home-card" onclick="showView('evaluator-login')">
+            <div class="home-card-icon evaluator">🗳️</div>
+            <h3>开始评分</h3>
+            <p>输入姓名和小组，进入评分</p>
+          </div>
+          <div class="home-card" onclick="showView('admin-login')">
+            <div class="home-card-icon admin">⚙️</div>
+            <h3>管理后台</h3>
+            <p>维护名单、预设评分关系、查看结果</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== VIEW: EVALUATOR LOGIN ===== -->
+  <div class="view" id="view-evaluator-login">
+    <div class="card">
+      <div class="card-header"><span class="card-title">🗳️ 评分人登录</span></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">姓名</label>
+          <input type="text" class="form-control" id="eval-name" placeholder="请输入您的姓名" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">所属小组</label>
+          <input type="text" class="form-control" id="eval-group" placeholder="请输入您所在的小组" autocomplete="off">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="evaluatorLogin()">进入评分 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== VIEW: EVALUATOR TARGET LIST ===== -->
+  <div class="view" id="view-evaluator-list">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">待评分对象</span>
+        <span id="eval-list-summary" style="font-size:12px;color:var(--text-muted)"></span>
+      </div>
+      <div class="card-body">
+        <div id="eval-target-list" class="target-list"></div>
+        <div id="eval-all-done" style="display:none;text-align:center;padding:40px;">
+          <div style="font-size:48px;margin-bottom:12px">🎉</div>
+          <h3 style="margin-bottom:8px">本轮评分完成！</h3>
+          <p style="color:var(--text-muted);font-size:13px">所有待评分对象均已完成，感谢参与。</p>
+          <button class="btn btn-secondary" style="margin-top:16px" onclick="evaluatorLogout()">重新开始</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== VIEW: EVALUATOR FORM ===== -->
+  <div class="view" id="view-evaluator-form">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📋 评价表 — <span id="form-target-name"></span></span>
+        <button class="btn btn-secondary btn-sm" onclick="backToTargetList()">← 返回列表</button>
+      </div>
+      <div class="card-body">
+        <!-- Tabs: team / member -->
+        <div class="tabs" id="eval-form-tabs">
+          <button class="tab-btn active" onclick="switchEvalTab('team')" id="tab-team">🏢 团队评价表</button>
+          <button class="tab-btn" onclick="switchEvalTab('member')" id="tab-member">👤 成员评价表</button>
+        </div>
+
+        <!-- ===== TEAM FORM ===== -->
+        <div class="tab-panel active" id="panel-team">
+          <div class="score-section">
+            <div class="score-section-header">一、节点完整性（满分 10 分）</div>
+            <div class="score-item">
+              <div class="score-item-title">节点完整性</div>
+              <div class="score-item-desc">"一张图"是否完整涵盖需求分析、产品设计、代码开发等 8 个关键节点。（运维团队重点考核部署、排查、数据处理等后端节点）</div>
+              <div class="score-options" data-q="team_1" data-max="10">
+                <div class="score-opt" onclick="selectOpt(this,10)">优秀 10分</div>
+                <div class="score-opt" onclick="selectOpt(this,8)">良好 8分</div>
+                <div class="score-opt" onclick="selectOpt(this,5)">一般 5分</div>
+                <div class="score-opt" onclick="selectOpt(this,0)">较差 0分</div>
+              </div>
+              <div class="score-detail">优秀：完整覆盖8个节点，运维覆盖核心后端节点 | 良好：覆盖6-7个节点 | 一般：覆盖4-5个节点 | 较差：少于4个节点</div>
+            </div>
+          </div>
+          <div class="score-section">
+            <div class="score-section-header">二、AI介入清晰度（满分 20 分）</div>
+            <div class="score-item">
+              <div class="score-item-title">AI介入清晰度</div>
+              <div class="score-item-desc">是否在图上明确标注（或在汇报中清晰说明）各节点具体使用的 AI 工具及其介入程度</div>
+              <div class="score-options" data-q="team_2" data-max="20">
+                <div class="score-opt" onclick="selectOpt(this,20)">优秀 20分</div>
+                <div class="score-opt" onclick="selectOpt(this,12)">良好 12分</div>
+                <div class="score-opt" onclick="selectOpt(this,8)">一般 8分</div>
+                <div class="score-opt" onclick="selectOpt(this,0)">较差 0分</div>
+              </div>
+              <div class="score-detail">优秀：极度清晰，工具与介入程度一目了然 | 良好：较清晰，能展现主要环节应用 | 一般：模糊，仅罗列工具名称 | 较差：混乱，无法了解现状</div>
+            </div>
+          </div>
+          <div class="score-section">
+            <div class="score-section-header">三、真实性与契合度（满分 20 分）⭐一票否决项</div>
+            <div class="score-item">
+              <div class="score-item-title">真实性与契合度</div>
+              <div class="score-item-desc">是否真实反映当前团队 AI 结合深度。如发现为应付考核过度包装、脱离实际现状，此项直接记 0 分。</div>
+              <div class="score-options" data-q="team_3" data-max="20">
+                <div class="score-opt" onclick="selectOpt(this,20)">优秀 20分</div>
+                <div class="score-opt" onclick="selectOpt(this,12)">良好 12分</div>
+                <div class="score-opt" onclick="selectOpt(this,8)">一般 8分</div>
+                <div class="score-opt" onclick="selectOpt(this,0)">否决 0分</div>
+              </div>
+              <div class="score-detail">优秀：极其真实，紧贴业务，无任何夸大 | 良好：基本客观，偶有轻微美化 | 一般：部分脱离实际，明显包装痕迹 | 否决：严重过度包装</div>
+            </div>
+          </div>
+          <div class="score-section">
+            <div class="score-section-header">四、建言质量（满分 20 分）</div>
+            <div class="score-item">
+              <div class="score-item-title">建言质量</div>
+              <div class="score-item-desc">站在团队管理和业务全局高度，对部门现有工具链、工作流卡点或管理方式等，提出能实质性推动整体效能提升的建设性建议。</div>
+              <div class="score-options" data-q="team_4" data-max="20">
+                <div class="score-opt" onclick="selectOpt(this,20)">优秀 20分</div>
+                <div class="score-opt" onclick="selectOpt(this,16)">良好 16分</div>
+                <div class="score-opt" onclick="selectOpt(this,8)">一般 8分</div>
+                <div class="score-opt" onclick="selectOpt(this,0)">较差 0分</div>
+              </div>
+              <div class="score-detail">优秀：直击痛点，极具建设性与落地价值 | 良好：对优化现状有一定帮助 | 一般：偏常规，缺乏深度思考 | 较差：无实质建言或脱离实际</div>
+            </div>
+          </div>
+          <div class="score-section">
+            <div class="score-section-header">五、团队痛点暴露（满分 10 分）</div>
+            <div class="score-item">
+              <div class="score-item-title">团队痛点暴露</div>
+              <div class="score-item-desc">是否敢于准确剖析团队在推行 AI Native 过程中遇到的共性瓶颈、局限或未解决的管理/技术难题。</div>
+              <div class="score-options" data-q="team_5" data-max="10">
+                <div class="score-opt" onclick="selectOpt(this,10)">优秀 10分</div>
+                <div class="score-opt" onclick="selectOpt(this,7)">良好 7分</div>
+                <div class="score-opt" onclick="selectOpt(this,4)">一般 4分</div>
+                <div class="score-opt" onclick="selectOpt(this,0)">较差 0分</div>
+              </div>
+              <div class="score-detail">优秀：精准暴露团队共性技术或管理瓶颈 | 良好：指出主要痛点，逻辑清晰 | 一般：流于大众化，未结合团队自身 | 较差：避重就轻，掩盖问题</div>
+            </div>
+          </div>
+          <div class="score-section">
+            <div class="score-section-header">六、团队心得总结（满分 20 分）</div>
+            <div class="score-item">
+              <div class="score-item-title">团队心得总结</div>
+              <div class="score-item-desc">对团队前期探索 AI-Native 的真实体验与沉淀的方法论进行总结，拒绝套话。</div>
+              <div class="score-options" data-q="team_6" data-max="20">
+                <div class="score-opt" onclick="selectOpt(this,20)">优秀 20分</div>
+                <div class="score-opt" onclick="selectOpt(this,12)">良好 12分</div>
+                <div class="score-opt" onclick="selectOpt(this,8)">一般 8分</div>
+                <div class="score-opt" onclick="selectOpt(this,0)">较差 0分</div>
+              </div>
+              <div class="score-detail">优秀：极具部门推广价值，干货满满 | 良好：具备真实团队探索心得 | 一般：流于形式，存在套话 | 较差：无实质性总结</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== MEMBER FORM ===== -->
+        <div class="tab-panel" id="panel-member">
+          <div class="score-section">
+            <div class="score-section-header">一、场景明确性（满分 30 分）</div>
+            <div class="score-item">
+              <div class="score-item-title">场景明确性</div>
+              <div class="score-item-desc">个人汇报时，是否清晰、逐一地阐述了在哪个具体的研发/测试/运维/产品环节，使用了什么具体的 AI 能力或工具。</div>
+              <div class="score-options" data-q="member_1" data-max="30">
+                <div class="score-opt" onclick="selectOpt(this,30)">优秀 30分</div>
+                <div class="score-opt" onclick="selectOpt(this,20)">良好 20分</div>
+                <div class="score-opt" onclick="selectOpt(this,12)">一般 12分</div>
+                <div class="score-opt" onclick="selectOpt(this,0)">较差 0分</div>
+              </div>
+              <div class="score-detail">优秀：极度清晰，操作环节与工具匹配精准 | 良好：场景完整，匹配合理 | 一般：含糊，场景颗粒度过粗 | 较差：场景不清，无法明确说出应用环节</div>
+            </div>
+          </div>
+          <div class="score-section">
+            <div class="score-section-header">二、成果量化度（满分 30 分）</div>
+            <div class="score-item">
+              <div class="score-item-title">成果量化度</div>
+              <div class="score-item-desc">应用后产出了什么具体的客观效果。必须提供真实的量化支撑（如：工时缩减比例、测试用例编写提效数据、Bug修复速度或代码质量提升证据）。</div>
+              <div class="score-options" data-q="member_2" data-max="30">
+                <div class="score-opt" onclick="selectOpt(this,30)">优秀 30分</div>
+                <div class="score-opt" onclick="selectOpt(this,20)">良好 20分</div>
+                <div class="score-opt" onclick="selectOpt(this,10)">一般 10分</div>
+                <div class="score-opt" onclick="selectOpt(this,5)">较差 5分</div>
+              </div>
+              <div class="score-detail">优秀：丰富、翔实、客观的量化数据证据 | 良好：有数据支撑，但维度单一 | 一般：缺乏数据，仅主观定性描述 | 较差：无任何客观成果证明</div>
+            </div>
+          </div>
+          <div class="score-section">
+            <div class="score-section-header">三、痛点暴露（满分 15 分）</div>
+            <div class="score-item">
+              <div class="score-item-title">痛点暴露</div>
+              <div class="score-item-desc">基于个人实际操作，是否准确指出了工具的局限性（如 AI 幻觉、上下文丢失）、瓶颈或尚未解决的个人效率难题。</div>
+              <div class="score-options" data-q="member_3" data-max="15">
+                <div class="score-opt" onclick="selectOpt(this,15)">优秀 15分</div>
+                <div class="score-opt" onclick="selectOpt(this,10)">良好 10分</div>
+                <div class="score-opt" onclick="selectOpt(this,5)">一般 5分</div>
+                <div class="score-opt" onclick="selectOpt(this,0)">较差 0分</div>
+              </div>
+              <div class="score-detail">优秀：极其精准，真实反映一线实操局限 | 良好：指出具体应用痛点 | 一般：流于表面（如网速慢），缺乏业务结合 | 较差：未暴露实际痛点</div>
+            </div>
+          </div>
+          <div class="score-section">
+            <div class="score-section-header">四、心得总结（满分 20 分）</div>
+            <div class="score-item">
+              <div class="score-item-title">心得总结</div>
+              <div class="score-item-desc">是否基于真实使用体验的方法总结和技巧沉淀（例如特定 Prompt 技巧或某类排错心得），非空泛套话。</div>
+              <div class="score-options" data-q="member_4" data-max="20">
+                <div class="score-opt" onclick="selectOpt(this,20)">优秀 20分</div>
+                <div class="score-opt" onclick="selectOpt(this,12)">良好 12分</div>
+                <div class="score-opt" onclick="selectOpt(this,8)">一般 8分</div>
+                <div class="score-opt" onclick="selectOpt(this,0)">较差 0分</div>
+              </div>
+              <div class="score-detail">优秀：技巧沉淀极佳，对其他成员有启发意义 | 良好：具备真实个人实操体会 | 一般：泛泛而谈，缺乏干货 | 较差：无总结或照搬他人</div>
+            </div>
+          </div>
+          <div class="score-section">
+            <div class="score-section-header">五、个人建言质量（满分 5 分）</div>
+            <div class="score-item">
+              <div class="score-item-title">个人建言质量</div>
+              <div class="score-item-desc">基于一线使用者的切身感受，对现有的工具链配置或日常工作流提出具体的改进建议。</div>
+              <div class="score-options" data-q="member_5" data-max="5">
+                <div class="score-opt" onclick="selectOpt(this,5)">优秀 5分</div>
+                <div class="score-opt" onclick="selectOpt(this,3)">良好 3分</div>
+                <div class="score-opt" onclick="selectOpt(this,2)">一般 2分</div>
+                <div class="score-opt" onclick="selectOpt(this,0)">较差 0分</div>
+              </div>
+              <div class="score-detail">优秀：极具个人实操视角的针对性与可行性 | 良好：有一定价值的局部改进建议 | 一般：偏向抱怨，缺乏可操作性 | 较差：无建设性建议</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total & Submit -->
+        <div class="total-bar" style="margin-top:20px;border-radius:var(--radius)">
+          <span>当前得分</span>
+          <span class="total-num" id="eval-total">0</span><span style="font-size:14px;color:var(--text-muted);font-weight:400"> / <span id="eval-max">100</span></span>
+        </div>
+        <div style="margin-top:16px">
+          <button class="btn btn-success btn-block" onclick="submitScore()">✓ 提交评分</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== VIEW: ADMIN LOGIN ===== -->
+  <div class="view" id="view-admin-login">
+    <div class="card">
+      <div class="card-header"><span class="card-title">⚙️ 管理后台登录</span></div>
+      <div class="card-body">
+        <div id="admin-login-error" class="alert alert-danger" style="display:none"></div>
+        <div class="form-group">
+          <label class="form-label">管理员密码</label>
+          <input type="password" class="form-control" id="admin-pwd" placeholder="请输入管理员密码" onkeydown="if(event.key==='Enter')adminLogin()">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="adminLogin()">登录管理后台 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== VIEW: ADMIN PANEL ===== -->
+  <div class="view" id="view-admin-panel">
+    <div class="stats-grid" id="admin-stats"></div>
+
+    <!-- Config -->
+    <div class="card" id="card-config">
+      <div class="card-header"><span class="card-title">💾 数据管理</span></div>
+      <div class="card-body">
+        <div class="config-section" style="background:#eff6ff;border-color:#bfdbfe;margin-bottom:16px">
+          <h4 style="color:#1e40af">📌 数据同步说明</h4>
+          <p style="color:#1e40af;font-size:12px;line-height:1.8">
+            <strong>第一层（本地）：</strong>所有数据自动保存在浏览器 localStorage，<strong>数据绝不丢失</strong>。<br>
+            <strong>第二层（可选 · JSONBin 跨设备同步）：</strong>填写下方 Bin ID 后，评分人提交时自动推送到云端，<strong>管理员无需任何操作即可看到所有人的评分</strong>。JSONBin 暂时访问不通时，提交仍会保留在本地，恢复后自动补推。<br>
+            <strong>第三层（应急 · 文件导入导出）：</strong>即使 JSONBin 长期不可用，评分人仍可导出 JSON 文件发送给管理员手动合并。
+          </p>
+        </div>
+
+        <!-- Sync status -->
+        <div id="sync-status-bar" class="sync-bar" style="display:none">
+          <span id="sync-status-text"></span>
+        </div>
+
+        <h4 style="font-size:13px;margin:8px 0 10px;color:var(--text)">🔗 JSONBin 跨设备同步（可选）</h4>
+        <div class="config-row">
+          <div class="form-group">
+            <label class="form-label">JSONBin Bin ID</label>
+            <input type="text" class="form-control" id="cfg-bin-id" placeholder="例如：66f1a2b3c55d7a1234abcd">
+          </div>
+          <div class="form-group">
+            <label class="form-label">JSONBin Master Key</label>
+            <input type="text" class="form-control" id="cfg-master-key" placeholder="Master Key（私密读取/写入）">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+          <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 保存配置</button>
+          <button class="btn btn-outline btn-sm" onclick="manualSync()">🔄 立即从云端拉取</button>
+          <button class="btn btn-outline btn-sm" onclick="manualPush()">⬆️ 推送本地到云端</button>
+          <span id="cfg-saved" style="color:var(--success);font-size:13px;display:none">✓ 已保存</span>
+        </div>
+
+        <h4 style="font-size:13px;margin:18px 0 10px;color:var(--text)">📁 文件导入导出（应急用）</h4>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+          <button class="btn btn-success btn-sm" onclick="exportAllData()">📤 导出全部数据</button>
+          <label class="btn btn-outline btn-sm" style="cursor:pointer">📥 导入数据（合并）
+            <input type="file" accept=".json" style="display:none" onchange="handleImport(this)">
+          </label>
+          <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑️ 清空所有数据</button>
+        </div>
+
+        <h4 style="font-size:13px;margin:8px 0 10px;color:var(--text)">🔐 管理员密码</h4>
+        <div class="form-group" style="margin-bottom:0">
+          <div style="display:flex;gap:10px">
+            <input type="text" class="form-control" id="cfg-admin-pwd" value="admin123" placeholder="设置管理员登录密码" style="max-width:240px">
+            <button class="btn btn-secondary btn-sm" onclick="saveConfig()">保存密码</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" id="admin-tabs">
+      <button class="tab-btn active" onclick="switchAdminTab('members')" id="tab-members">👥 成员名单</button>
+      <button class="tab-btn" onclick="switchAdminTab('teams')" id="tab-teams">🏢 团队名单</button>
+      <button class="tab-btn" onclick="switchAdminTab('assign')" id="tab-assign">🔗 评分关系</button>
+      <button class="tab-btn" onclick="switchAdminTab('results')" id="tab-results">📊 汇总结果</button>
+    </div>
+
+    <!-- TAB: Members -->
+    <div class="tab-panel active" id="panel-members">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">成员名单</span>
+          <button class="btn btn-primary btn-sm" onclick="openAddMember()">+ 添加成员</button>
+        </div>
+        <div class="card-body">
+          <div class="search-bar">
+            <input type="text" class="form-control" id="member-search" placeholder="搜索成员姓名或小组…" oninput="renderMembers()">
+          </div>
+          <table class="data-table" id="members-table">
+            <thead><tr><th>姓名</th><th>小组</th><th>操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Teams -->
+    <div class="tab-panel" id="panel-teams">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">团队名单</span>
+          <button class="btn btn-primary btn-sm" onclick="openAddTeam()">+ 添加团队</button>
+        </div>
+        <div class="card-body">
+          <table class="data-table" id="teams-table">
+            <thead><tr><th>团队名称</th><th>操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Assign -->
+    <div class="tab-panel" id="panel-assign">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">预设评分关系</span>
+          <button class="btn btn-primary btn-sm" onclick="openBatchAssign()">🔄 批量分配</button>
+        </div>
+        <div class="card-body">
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">设置"谁可以评谁"——评分人看到的是分配给他的待评分列表，看不到其他未被分配的对象。</p>
+          <div id="assign-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Results -->
+    <div class="tab-panel" id="panel-results">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">评分汇总</span>
+          <button class="btn btn-secondary btn-sm" onclick="exportResults()">📥 导出 CSV</button>
+        </div>
+        <div class="card-body">
+          <div class="search-bar">
+            <input type="text" class="form-control" id="result-search" placeholder="搜索被评人姓名…" oninput="renderResults()">
+          </div>
+          <div id="results-summary"></div>
+          <table class="data-table" id="results-table">
+            <thead><tr><th>被评人</th><th>类型</th><th>评分人数</th><th>平均分</th><th>操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end container -->
+
+<!-- Modal: Add Member -->
+<div class="modal-overlay" id="modal-add-member">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">添加成员</span><button class="modal-close" onclick="closeModal('modal-add-member')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">姓名 *</label>
+        <input type="text" class="form-control" id="add-member-name" placeholder="输入成员姓名">
+      </div>
+      <div class="form-group">
+        <label class="form-label">小组 *</label>
+        <input type="text" class="form-control" id="add-member-group" placeholder="输入所属小组">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-member')">取消</button>
+      <button class="btn btn-primary" onclick="addMember()">添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add Team -->
+<div class="modal-overlay" id="modal-add-team">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">添加团队</span><button class="modal-close" onclick="closeModal('modal-add-team')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">团队名称 *</label>
+        <input type="text" class="form-control" id="add-team-name" placeholder="输入团队名称">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-team')">取消</button>
+      <button class="btn btn-primary" onclick="addTeam()">添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Batch Assign -->
+<div class="modal-overlay" id="modal-batch-assign">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header"><span class="modal-title">批量分配评分关系</span><button class="modal-close" onclick="closeModal('modal-batch-assign')">×</button></div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">选择一个评分人，再选择他需要评分的所有对象（可多选）。</p>
+      <div class="form-group">
+        <label class="form-label">评分人</label>
+        <select class="form-control" id="batch-eval-select" onchange="renderBatchTargets()">
+          <option value="">— 请选择评分人 —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">可评对象（勾选要分配的项目）</label>
+        <div class="checkbox-list" id="batch-target-list"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-batch-assign')">取消</button>
+      <button class="btn btn-primary" onclick="saveBatchAssign()">确认分配</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Detail -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header"><span class="modal-title" id="detail-title">评分明细</span><button class="modal-close" onclick="closeModal('modal-detail')">×</button></div>
+    <div class="modal-body" id="detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-detail')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="footer">职业健康事业部 · AINative 落地应用评价系统</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const DEFAULT_CONFIG = {
+  adminPassword: 'admin123',
+  binId: '',     // 留空 = 纯本地模式；填写后开启跨设备同步
+  masterKey: ''
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let appState = {
+  config: { ...DEFAULT_CONFIG },
+  members: [],
+  teams: [],
+  assignments: [], // {evaluator, evaluatorGroup, target, targetType}
+  scores: []
+};
+
+let currentEvaluator = null;
+let currentAdminTab = 'members';
+let currentEvalTab = 'team';
+let currentTarget = null;
+let currentScores = {};
+let editAssignEval = null;
+
+// ============================================================
+// DATA STORAGE — localStorage（主） + JSONBin（可选跨设备同步）
+// ============================================================
+//   设计原则：
+//   1. 任何提交必先写入 localStorage（数据绝不丢失）
+//   2. 若 binId 已配置，再异步推送到 JSONBin；JSONBin 失败不影响提交
+//   3. 管理员打开后台时，自动从 JSONBin 拉取最新数据合并到本地
+//   4. 评分人端：本地评分先存到本地；提交时尝试同步到 JSONBin
+// ============================================================
+const LS_KEY = 'ainative-eval-v1';
+const SYNC_STATUS_KEY = 'ainative-eval-sync-status';
+
+function lsRead() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+}
+
+function lsWrite(data) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    return true;
+  } catch (e) {
+    console.warn('localStorage 写入失败：', e.message);
+    return false;
+  }
+}
+
+function loadData() {
+  const data = lsRead();
+  if (!data) return;
+  appState.config = { ...DEFAULT_CONFIG, ...(data.config || {}) };
+  appState.members = data.members || [];
+  appState.teams = data.teams || [];
+  appState.assignments = data.assignments || [];
+  appState.scores = data.scores || [];
+}
+
+// 合并两份数据，按 id 去重，保留较新的版本
+function mergeData(remoteData) {
+  if (!remoteData) return;
+  // 合并 config（远程优先）
+  appState.config = { ...appState.config, ...(remoteData.config || {}) };
+  // 合并 members（按 name 去重）
+  const memberMap = new Map(appState.members.map(m => [m.name, m]));
+  for (const m of (remoteData.members || [])) {
+    if (!memberMap.has(m.name)) memberMap.set(m.name, m);
+  }
+  appState.members = Array.from(memberMap.values());
+  // 合并 teams
+  const teamMap = new Map(appState.teams.map(t => [t.name, t]));
+  for (const t of (remoteData.teams || [])) {
+    if (!teamMap.has(t.name)) teamMap.set(t.name, t);
+  }
+  appState.teams = Array.from(teamMap.values());
+  // 合并 assignments（按 evaluator+target+type 去重）
+  const assignKey = a => `${a.evaluator}|${a.evaluatorGroup}|${a.target}|${a.targetType}`;
+  const assignMap = new Map(appState.assignments.map(a => [assignKey(a), a]));
+  for (const a of (remoteData.assignments || [])) {
+    assignMap.set(assignKey(a), a);
+  }
+  appState.assignments = Array.from(assignMap.values());
+  // 合并 scores（按 id 去重）
+  const scoreMap = new Map(appState.scores.map(s => [s.id, s]));
+  for (const s of (remoteData.scores || [])) {
+    scoreMap.set(s.id, s);
+  }
+  appState.scores = Array.from(scoreMap.values());
+}
+
+async function saveData() {
+  // 1) 本地必写（数据保险）
+  const payload = {
+    config: appState.config,
+    members: appState.members,
+    teams: appState.teams,
+    assignments: appState.assignments,
+    scores: appState.scores,
+    _savedAt: new Date().toISOString()
+  };
+  lsWrite(payload);
+  // 2) 异步推送 JSONBin（失败不影响本地数据）
+  pushToBin(payload).catch(e => console.warn('JSONBin 同步失败（数据仍在本地）：', e.message));
+  return true;
+}
+
+async function fetchFromBin() {
+  const { binId, masterKey } = appState.config;
+  if (!binId) return null;
+  const headers = { 'Content-Type': 'application/json' };
+  if (masterKey) headers['X-Master-Key'] = masterKey;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, { headers, signal: controller.signal });
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    return json.record || null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function pushToBin(payload) {
+  const { binId, masterKey } = appState.config;
+  if (!binId) return;
+  const headers = { 'Content-Type': 'application/json', 'X-Bin-Versioning': 'false' };
+  if (masterKey) headers['X-Master-Key'] = masterKey;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+        method: 'PUT', headers, body: JSON.stringify(payload), signal: controller.signal
+      });
+      clearTimeout(timeout);
+      if (res.ok) {
+        setSyncStatus('ok', '已同步到 JSONBin');
+        return;
+      }
+      if (res.status === 409 && attempt < 3) {
+        // 冲突：拉取最新并重试
+        const latest = await fetchFromBin();
+        if (latest) {
+          // 保留本地新提交，合并远程数据
+          const localMap = new Map(appState.scores.map(s => [s.id, s]));
+          for (const s of (latest.scores || [])) {
+            if (!localMap.has(s.id)) {
+              appState.scores.push(s);
+              localMap.set(s.id, s);
+            }
+          }
+          lsWrite({ ...appState, _savedAt: new Date().toISOString() });
+          continue;
+        }
+      }
+      throw new Error('HTTP ' + res.status);
+    } catch (e) {
+      if (attempt === 3) {
+        setSyncStatus('error', 'JSONBin 同步失败：' + e.message);
+        throw e;
+      }
+      await new Promise(r => setTimeout(r, 1000 * attempt));
+    }
+  }
+}
+
+function setSyncStatus(level, msg) {
+  try {
+    localStorage.setItem(SYNC_STATUS_KEY, JSON.stringify({ level, msg, at: Date.now() }));
+  } catch (e) {}
+  const bar = document.getElementById('sync-status-bar');
+  if (!bar) return;
+  if (!msg) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  bar.className = 'sync-bar sync-' + level;
+  document.getElementById('sync-status-text').textContent = msg;
+}
+
+function refreshSyncStatus() {
+  try {
+    const raw = localStorage.getItem(SYNC_STATUS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (Date.now() - s.at > 30000) { setSyncStatus(null, null); return; }
+    setSyncStatus(s.level, s.msg);
+  } catch (e) {}
+}
+
+async function exportAllData() {
+  const payload = {
+    config: appState.config,
+    members: appState.members,
+    teams: appState.teams,
+    assignments: appState.assignments,
+    scores: appState.scores,
+    _savedAt: new Date().toISOString()
+  };
+  const blob = new Blob(['\uFEFF' + JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `AINative评分数据_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importData(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!Array.isArray(data.members) && !Array.isArray(data.scores)) {
+          reject(new Error('文件格式不正确，缺少必需字段。'));
+          return;
+        }
+        appState.config = { ...DEFAULT_CONFIG, ...(data.config || {}) };
+        appState.members = data.members || [];
+        appState.teams = data.teams || [];
+        appState.assignments = data.assignments || [];
+        appState.scores = data.scores || [];
+        localStorage.setItem(LS_KEY, JSON.stringify({
+          config: appState.config,
+          members: appState.members,
+          teams: appState.teams,
+          assignments: appState.assignments,
+          scores: appState.scores,
+          _savedAt: new Date().toISOString()
+        }));
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error('文件读取失败'));
+    reader.readAsText(file);
+  });
+}
+
+function showLoading(show) {
+  document.getElementById('loadingOverlay').classList.toggle('show', show);
+}
+
+// ============================================================
+// VIEW MANAGEMENT
+// ============================================================
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  const isHome = id === 'home';
+  const isEvaluator = ['evaluator-login','evaluator-list','evaluator-form'].includes(id);
+  const isAdmin = ['admin-login','admin-panel'].includes(id);
+  document.getElementById('btnBackToHome').style.display = (isEvaluator || isAdmin) ? 'inline-flex' : 'none';
+  document.getElementById('btnLogout').style.display = (isEvaluator || isAdmin) ? 'inline-flex' : 'none';
+  if (isEvaluator) {
+    document.getElementById('headerRole').style.display = 'inline-block';
+    document.getElementById('headerRole').textContent = '🗳️ 评分人';
+  } else if (isAdmin) {
+    document.getElementById('headerRole').style.display = 'inline-block';
+    document.getElementById('headerRole').textContent = '⚙️ 管理员';
+  } else {
+    document.getElementById('headerRole').style.display = 'none';
+  }
+}
+
+function switchAdminTab(tab) {
+  currentAdminTab = tab;
+  document.querySelectorAll('#admin-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+  if (tab === 'members') renderMembers();
+  else if (tab === 'teams') renderTeams();
+  else if (tab === 'assign') renderAssign();
+  else if (tab === 'results') renderResults();
+}
+
+function switchEvalTab(tab) {
+  currentEvalTab = tab;
+  document.querySelectorAll('#eval-form-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#view-evaluator-form .tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+  document.getElementById('eval-max').textContent = tab === 'team' ? '100' : '100';
+  updateEvalTotal();
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// ============================================================
+// EVALUATOR LOGIN
+// ============================================================
+function evaluatorLogin() {
+  const name = document.getElementById('eval-name').value.trim();
+  const group = document.getElementById('eval-group').value.trim();
+  if (!name) { alert('请输入姓名'); return; }
+  if (!group) { alert('请输入所属小组'); return; }
+  currentEvaluator = { name, group };
+  sessionStorage.setItem('eval', JSON.stringify({ name, group }));
+  // Check if evaluator has any assigned targets
+  const targets = getAssignedTargets(name, group);
+  if (targets.length === 0) {
+    alert('当前没有分配给您评分的对象，请联系管理员。');
+    currentEvaluator = null;
+    sessionStorage.removeItem('eval');
+    return;
+  }
+  showView('evaluator-list');
+  renderEvaluatorTargets();
+}
+
+function evaluatorLogout() {
+  currentEvaluator = null;
+  sessionStorage.removeItem('eval');
+  showView('home');
+}
+
+function logout() {
+  currentEvaluator = null;
+  sessionStorage.removeItem('eval');
+  sessionStorage.removeItem('admin');
+  showView('home');
+}
+
+function getAssignedTargets(evalName, evalGroup) {
+  const all = [];
+  // Find assignments for this evaluator (match by name+group or just name)
+  const matches = appState.assignments.filter(a =>
+    (a.evaluator === evalName && a.evaluatorGroup === evalGroup) ||
+    (a.evaluator === evalName && !a.evaluatorGroup)
+  );
+  for (const a of matches) {
+    // Check if already scored
+    const scored = appState.scores.some(s =>
+      s.evaluator === evalName && s.evaluatorGroup === evalGroup &&
+      s.target === a.target && s.targetType === a.targetType
+    );
+    all.push({ ...a, scored });
+  }
+  return all;
+}
+
+function renderEvaluatorTargets() {
+  const targets = getAssignedTargets(currentEvaluator.name, currentEvaluator.group);
+  const done = targets.filter(t => t.scored).length;
+  document.getElementById('eval-list-summary').textContent = `已完成 ${done} / ${targets.length}`;
+  const list = document.getElementById('eval-target-list');
+  if (targets.length === 0 || targets.every(t => t.scored)) {
+    list.style.display = 'none';
+    document.getElementById('eval-all-done').style.display = 'block';
+    return;
+  }
+  document.getElementById('eval-all-done').style.display = 'none';
+  list.style.display = 'flex';
+  list.innerHTML = targets.map(t => {
+    const avatarClass = t.targetType === 'team' ? 'team' : 'member';
+    const initials = t.target.slice(0, 1);
+    return `<div class="target-item">
+      <div class="target-item-info">
+        <div class="target-avatar ${avatarClass}">${initials}</div>
+        <div>
+          <div class="target-name">${t.target}</div>
+          <div class="target-group">${t.targetType === 'team' ? '🏢 团队' : '👤 成员'}</div>
+        </div>
+      </div>
+      <div class="target-status">
+        ${t.scored
+          ? '<span class="status-badge done">✓ 已评分</span>'
+          : '<span class="status-badge pending">待评分</span>'}
+        ${!t.scored ? `<button class="btn btn-primary btn-sm" onclick="startEvaluate('${t.target}','${t.targetType}')">去评分 →</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function backToTargetList() {
+  showView('evaluator-list');
+  renderEvaluatorTargets();
+}
+
+// ============================================================
+// SCORING FORM
+// ============================================================
+function startEvaluate(target, targetType) {
+  currentTarget = { name: target, type: targetType };
+  currentScores = {};
+  document.getElementById('form-target-name').textContent = target;
+  // Reset all selections
+  document.querySelectorAll('.score-opt').forEach(o => o.classList.remove('selected'));
+  document.getElementById('eval-total').textContent = '0';
+  // Auto-switch to appropriate tab if admin assigned a type
+  if (targetType === 'team') switchEvalTab('team');
+  else if (targetType === 'member') switchEvalTab('member');
+  showView('evaluator-form');
+}
+
+function selectOpt(el, score) {
+  const container = el.closest('.score-options');
+  container.querySelectorAll('.score-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  const q = container.dataset.q;
+  const max = parseInt(container.dataset.max);
+  currentScores[q] = { score, max };
+  updateEvalTotal();
+}
+
+function updateEvalTotal() {
+  let total = 0;
+  // Only count visible tab's questions
+  const tab = currentEvalTab;
+  const prefixes = tab === 'team'
+    ? ['team_1','team_2','team_3','team_4','team_5','team_6']
+    : ['member_1','member_2','member_3','member_4','member_5'];
+  for (const q of prefixes) {
+    if (currentScores[q]) total += currentScores[q].score;
+  }
+  document.getElementById('eval-total').textContent = total;
+}
+
+async function submitScore() {
+  const tab = currentEvalTab;
+  const prefixes = tab === 'team'
+    ? ['team_1','team_2','team_3','team_4','team_5','team_6']
+    : ['member_1','member_2','member_3','member_4','member_5'];
+  const required = tab === 'team' ? 6 : 5;
+  const answered = prefixes.filter(q => currentScores[q] !== undefined).length;
+  if (answered < required) {
+    alert(`请完成所有 ${required} 个评分项目后再提交。`);
+    return;
+  }
+
+  // Build score record
+  const scoreData = {};
+  for (const q of prefixes) {
+    scoreData[q] = currentScores[q].score;
+  }
+  const total = Object.values(scoreData).reduce((a, b) => a + b, 0);
+  const record = {
+    id: Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+    evaluator: currentEvaluator.name,
+    evaluatorGroup: currentEvaluator.group,
+    target: currentTarget.name,
+    targetType: currentTarget.type,
+    formType: tab,
+    scores: scoreData,
+    total,
+    timestamp: new Date().toISOString()
+  };
+
+  appState.scores.push(record);
+  const ok = await saveData();
+  if (!ok) {
+    // Rollback
+    appState.scores = appState.scores.filter(s => s.id !== record.id);
+    return;
+  }
+
+  alert(`✅ 评分已提交！\n被评人：${currentTarget.name}\n得分：${total} / 100`);
+  currentTarget = null;
+  currentScores = {};
+  showView('evaluator-list');
+  renderEvaluatorTargets();
+}
+
+// ============================================================
+// ADMIN LOGIN
+// ============================================================
+function adminLogin() {
+  const pwd = document.getElementById('admin-pwd').value;
+  if (!appState.config.adminPassword) {
+    alert('请先在管理后台设置管理员密码。');
+    showView('admin-login');
+    return;
+  }
+  if (pwd !== appState.config.adminPassword) {
+    document.getElementById('admin-login-error').style.display = 'block';
+    document.getElementById('admin-login-error').textContent = '密码错误，请重试。';
+    return;
+  }
+  sessionStorage.setItem('admin', '1');
+  document.getElementById('admin-pwd').value = '';
+  document.getElementById('admin-login-error').style.display = 'none';
+  // 异步从 JSONBin 拉取最新数据并合并，再进入后台
+  showLoading(true);
+  Promise.all([loadData(), fetchFromBin().catch(() => null)])
+    .then(([_, remote]) => {
+      if (remote) {
+        mergeData(remote);
+        lsWrite({
+          config: appState.config,
+          members: appState.members,
+          teams: appState.teams,
+          assignments: appState.assignments,
+          scores: appState.scores,
+          _savedAt: new Date().toISOString()
+        });
+        setSyncStatus('ok', `已合并云端数据（当前共 ${appState.scores.length} 条评分）`);
+      } else if (appState.config.binId) {
+        setSyncStatus('info', '云端暂无新数据（已使用本地数据）');
+      }
+      showView('admin-panel');
+      renderAdminStats();
+      switchAdminTab('members');
+    })
+    .finally(() => showLoading(false));
+}
+}
+
+function checkAdminSession() {
+  if (sessionStorage.getItem('admin') === '1') {
+    showView('admin-panel');
+    renderAdminStats();
+    switchAdminTab('members');
+    // 后台静默从云端拉取
+    fetchFromBin()
+      .then(remote => {
+        if (remote) {
+          mergeData(remote);
+          lsWrite({
+            config: appState.config,
+            members: appState.members,
+            teams: appState.teams,
+            assignments: appState.assignments,
+            scores: appState.scores,
+            _savedAt: new Date().toISOString()
+          });
+          setSyncStatus('ok', `已合并云端数据（当前共 ${appState.scores.length} 条评分）`);
+          renderAdminStats();
+          switchAdminTab(currentAdminTab);
+        }
+      })
+      .catch(e => setSyncStatus('error', '云端拉取失败：' + e.message));
+    return true;
+  }
+  return false;
+}
+
+// ============================================================
+// ADMIN STATS
+// ============================================================
+function renderAdminStats() {
+  const uniqueTargets = new Set(appState.scores.map(s => s.target + '|' + s.targetType)).size;
+  const totalScores = appState.scores.length;
+  const uniqueEvaluators = new Set(appState.scores.map(s => s.evaluator + '|' + s.evaluatorGroup)).size;
+  const membersCount = appState.members.length;
+  const teamsCount = appState.teams.length;
+  document.getElementById('admin-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${totalScores}</div><div class="stat-label">已提交评分</div></div>
+    <div class="stat-card"><div class="stat-num">${uniqueEvaluators}</div><div class="stat-label">评分人数</div></div>
+    <div class="stat-card"><div class="stat-num">${uniqueTargets}</div><div class="stat-label">被评对象数</div></div>
+    <div class="stat-card"><div class="stat-num">${membersCount}</div><div class="stat-label">成员总数</div></div>
+    <div class="stat-card"><div class="stat-num">${teamsCount}</div><div class="stat-label">团队总数</div></div>
+  `;
+
+  // Fill config fields
+  document.getElementById('cfg-bin-id').value = appState.config.binId || '';
+  document.getElementById('cfg-master-key').value = appState.config.masterKey || '';
+  document.getElementById('cfg-admin-pwd').value = appState.config.adminPassword || 'admin123';
+  refreshSyncStatus();
+}
+
+async function manualSync() {
+  if (!appState.config.binId) { alert('请先填写 JSONBin 配置并保存。'); return; }
+  showLoading(true);
+  try {
+    const remote = await fetchFromBin();
+    if (!remote) {
+      alert('云端暂无数据。');
+      return;
+    }
+    mergeData(remote);
+    lsWrite({
+      config: appState.config,
+      members: appState.members,
+      teams: appState.teams,
+      assignments: appState.assignments,
+      scores: appState.scores,
+      _savedAt: new Date().toISOString()
+    });
+    setSyncStatus('ok', `已合并云端数据（当前共 ${appState.scores.length} 条评分）`);
+    alert(`✅ 已从云端拉取并合并数据。\n当前共 ${appState.scores.length} 条评分记录。`);
+    renderAdminStats();
+    switchAdminTab(currentAdminTab);
+  } catch (e) {
+    setSyncStatus('error', '云端拉取失败：' + e.message);
+    alert('❌ 拉取失败：' + e.message + '\n\n请检查 Bin ID / Master Key 是否正确，或当前网络是否可访问 jsonbin.io。');
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function manualPush() {
+  if (!appState.config.binId) { alert('请先填写 JSONBin 配置并保存。'); return; }
+  showLoading(true);
+  try {
+    const payload = {
+      config: appState.config,
+      members: appState.members,
+      teams: appState.teams,
+      assignments: appState.assignments,
+      scores: appState.scores,
+      _savedAt: new Date().toISOString()
+    };
+    await pushToBin(payload);
+    setSyncStatus('ok', '已推送到云端');
+    alert('✅ 已将本地数据推送到云端。');
+  } catch (e) {
+    setSyncStatus('error', '云端推送失败：' + e.message);
+    alert('❌ 推送失败：' + e.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ============================================================
+// ADMIN: IMPORT / CLEAR
+// ============================================================
+async function handleImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!confirm(`即将导入文件：${file.name}\n\n导入会与现有数据合并（相同姓名/团队的记录去重保留），是否继续？`)) {
+    input.value = '';
+    return;
+  }
+  try {
+    showLoading(true);
+    await importData(file);
+    loadData();
+    renderAdminStats();
+    alert('✅ 数据导入成功！');
+  } catch (e) {
+    alert('❌ 导入失败：' + e.message);
+  } finally {
+    showLoading(false);
+    input.value = '';
+  }
+}
+
+async function clearAllData() {
+  if (!confirm('⚠️ 确定要清空所有数据吗？此操作不可恢复！')) return;
+  if (!confirm('再次确认：清空后所有成员、团队、评分记录将全部删除。是否继续？')) return;
+  appState.members = [];
+  appState.teams = [];
+  appState.assignments = [];
+  appState.scores = [];
+  await saveData();
+  loadData();
+  renderAdminStats();
+  alert('已清空所有数据。');
+}
+
+// ============================================================
+// ADMIN: MEMBERS
+// ============================================================
+function renderMembers() {
+  const q = (document.getElementById('member-search')?.value || '').toLowerCase();
+  const filtered = appState.members.filter(m =>
+    m.name.toLowerCase().includes(q) || m.group.toLowerCase().includes(q)
+  );
+  const tbody = document.querySelector('#members-table tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:30px">暂无成员，请点击右上角添加</td></tr>';
+    return;
+  }
+  const colors = ['#0ea5e9','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#84cc16'];
+  tbody.innerHTML = filtered.map((m, i) => {
+    const color = colors[i % colors.length];
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px"><div class="av-sm" style="background:${color}">${m.name[0]}</div>${m.name}</div></td>
+      <td><span class="tag-group">${m.group}</span></td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteMember('${m.name}')">删除</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openAddMember() { openModal('modal-add-member'); }
+
+async function addMember() {
+  const name = document.getElementById('add-member-name').value.trim();
+  const group = document.getElementById('add-member-group').value.trim();
+  if (!name || !group) { alert('姓名和小组均不能为空'); return; }
+  if (appState.members.some(m => m.name === name)) { alert('该成员已存在'); return; }
+  appState.members.push({ name, group });
+  const ok = await saveData();
+  if (!ok) { appState.members.pop(); return; }
+  closeModal('modal-add-member');
+  document.getElementById('add-member-name').value = '';
+  document.getElementById('add-member-group').value = '';
+  renderMembers();
+  renderAdminStats();
+}
+
+async function deleteMember(name) {
+  if (!confirm(`确定删除成员"${name}"吗？`)) return;
+  const idx = appState.members.findIndex(m => m.name === name);
+  appState.members.splice(idx, 1);
+  // Also remove related assignments
+  appState.assignments = appState.assignments.filter(a => a.target !== name || a.targetType !== 'member');
+  const ok = await saveData();
+  if (!ok) { appState.members.splice(idx, 0, { name }); return; }
+  renderMembers();
+  renderAdminStats();
+}
+
+// ============================================================
+// ADMIN: TEAMS
+// ============================================================
+function renderTeams() {
+  const tbody = document.querySelector('#teams-table tbody');
+  if (appState.teams.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--text-muted);padding:30px">暂无团队，请点击右上角添加</td></tr>';
+    return;
+  }
+  tbody.innerHTML = appState.teams.map(t => `<tr>
+    <td><div style="display:flex;align-items:center;gap:8px"><div class="av-sm" style="background:#8b5cf6">🏢</div>${t.name}</div></td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteTeam('${t.name}')">删除</button></td>
+  </tr>`).join('');
+}
+
+function openAddTeam() { openModal('modal-add-team'); }
+
+async function addTeam() {
+  const name = document.getElementById('add-team-name').value.trim();
+  if (!name) { alert('团队名称不能为空'); return; }
+  if (appState.teams.some(t => t.name === name)) { alert('该团队已存在'); return; }
+  appState.teams.push({ name });
+  const ok = await saveData();
+  if (!ok) { appState.teams.pop(); return; }
+  closeModal('modal-add-team');
+  document.getElementById('add-team-name').value = '';
+  renderTeams();
+  renderAdminStats();
+}
+
+async function deleteTeam(name) {
+  if (!confirm(`确定删除团队"${name}"吗？`)) return;
+  const idx = appState.teams.findIndex(t => t.name === name);
+  appState.teams.splice(idx, 1);
+  appState.assignments = appState.assignments.filter(a => a.target !== name || a.targetType !== 'team');
+  const ok = await saveData();
+  if (!ok) { appState.teams.splice(idx, 0, { name }); return; }
+  renderTeams();
+  renderAdminStats();
+}
+
+// ============================================================
+// ADMIN: ASSIGNMENTS
+// ============================================================
+function renderAssign() {
+  // Group by evaluator
+  const byEval = {};
+  for (const a of appState.assignments) {
+    const key = a.evaluator + '|' + a.evaluatorGroup;
+    if (!byEval[key]) byEval[key] = { evaluator: a.evaluator, evaluatorGroup: a.evaluatorGroup, targets: [] };
+    byEval[key].targets.push(a);
+  }
+  const list = document.getElementById('assign-list');
+  const evalKeys = Object.keys(byEval).sort();
+
+  if (evalKeys.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔗</div><p>暂无评分关系，请点击右上角"批量分配"添加</p></div>';
+    return;
+  }
+
+  list.innerHTML = evalKeys.map(key => {
+    const g = byEval[key];
+    return `<div class="card" style="margin-bottom:12px">
+      <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="av-sm" style="background:var(--primary)">${g.evaluator[0]}</div>
+          <span style="font-weight:600;font-size:14px">${g.evaluator}</span>
+          <span class="tag-group">${g.evaluatorGroup}</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="openAddAssignFor('${g.evaluator}','${g.evaluatorGroup}')">+ 添加对象</button>
+          <button class="btn btn-danger btn-sm" onclick="removeAllAssign('${g.evaluator}','${g.evaluatorGroup}')">清空</button>
+        </div>
+      </div>
+      <div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px">
+        ${g.targets.map(t => `<span class="tag" style="cursor:default">${t.targetType === 'team' ? '🏢' : '👤'} ${t.target} <span style="cursor:pointer;margin-left:4px" onclick="removeAssign('${g.evaluator}','${g.evaluatorGroup}','${t.target}','${t.targetType}')">×</span></span>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openBatchAssign() {
+  const select = document.getElementById('batch-eval-select');
+  // Build evaluator list from members
+  const evaluators = [...new Map(appState.members.map(m => [m.name + '|' + m.group, m])).values()];
+  select.innerHTML = '<option value="">— 请选择评分人 —</option>' +
+    evaluators.map(m => `<option value="${m.name}|${m.group}">${m.name}（${m.group}）</option>`).join('');
+  renderBatchTargets();
+  openModal('modal-batch-assign');
+}
+
+function renderBatchTargets() {
+  const sel = document.getElementById('batch-eval-select').value;
+  const list = document.getElementById('batch-target-list');
+  if (!sel) { list.innerHTML = '<div style="color:var(--text-muted);font-size:12px;text-align:center;padding:20px">请先选择评分人</div>'; return; }
+  const [evalName, evalGroup] = sel.split('|');
+  // All possible targets
+  const items = [];
+  for (const m of appState.members) items.push({ name: m.name, type: 'member', label: `👤 ${m.name}（成员）` });
+  for (const t of appState.teams) items.push({ name: t.name, type: 'team', label: `🏢 ${t.name}（团队）` });
+  // Current assignments
+  const assigned = new Set(
+    appState.assignments
+      .filter(a => a.evaluator === evalName && a.evaluatorGroup === evalGroup)
+      .map(a => a.target + '|' + a.targetType)
+  );
+  list.innerHTML = items.map(item => {
+    const key = item.name + '|' + item.type;
+    const checked = assigned.has(key) ? 'checked' : '';
+    return `<label class="checkbox-item">
+      <input type="checkbox" value="${key}" ${checked}>
+      <span class="checkbox-label">${item.label}</span>
+    </label>`;
+  }).join('');
+}
+
+async function saveBatchAssign() {
+  const sel = document.getElementById('batch-eval-select').value;
+  if (!sel) { alert('请先选择评分人'); return; }
+  const [evalName, evalGroup] = sel.split('|');
+  const checked = [...document.querySelectorAll('#batch-target-list input:checked')].map(i => i.value);
+  // Remove old for this evaluator
+  appState.assignments = appState.assignments.filter(a =>
+    !(a.evaluator === evalName && a.evaluatorGroup === evalGroup)
+  );
+  // Add new
+  for (const key of checked) {
+    const [target, targetType] = key.split('|');
+    appState.assignments.push({ evaluator: evalName, evaluatorGroup: evalGroup, target, targetType });
+  }
+  const ok = await saveData();
+  if (!ok) { /* rollback if needed */ }
+  closeModal('modal-batch-assign');
+  renderAssign();
+}
+
+async function removeAssign(evalName, evalGroup, target, targetType) {
+  appState.assignments = appState.assignments.filter(a =>
+    !(a.evaluator === evalName && a.evaluatorGroup === evalGroup && a.target === target && a.targetType === targetType)
+  );
+  await saveData();
+  renderAssign();
+}
+
+async function removeAllAssign(evalName, evalGroup) {
+  if (!confirm(`确定清空"${evalName}"的所有评分关系？`)) return;
+  appState.assignments = appState.assignments.filter(a =>
+    !(a.evaluator === evalName && a.evaluatorGroup === evalGroup)
+  );
+  await saveData();
+  renderAssign();
+}
+
+function openAddAssignFor(evalName, evalGroup) {
+  // Build a quick modal for adding a single target
+  const name = prompt(`为 "${evalName}（${evalGroup}）" 添加评分对象\n\n请输入被评对象姓名（成员或团队）：`);
+  if (!name || !name.trim()) return;
+  const targetName = name.trim();
+  // Auto-detect type: check if it's a team first
+  const isTeam = appState.teams.some(t => t.name === targetName);
+  const isMember = appState.members.some(m => m.name === targetName);
+  if (!isTeam && !isMember) { alert('未找到该成员或团队，请先在对应名单中添加。'); return; }
+  const targetType = isTeam ? 'team' : 'member';
+  // Check duplicate
+  if (appState.assignments.some(a => a.evaluator === evalName && a.evaluatorGroup === evalGroup && a.target === targetName && a.targetType === targetType)) {
+    alert('该对象已存在于此评分人的列表中。'); return;
+  }
+  appState.assignments.push({ evaluator: evalName, evaluatorGroup: evalGroup, target: targetName, targetType });
+  saveData().then(() => renderAssign());
+}
+
+// ============================================================
+// ADMIN: RESULTS
+// ============================================================
+function renderResults() {
+  const q = (document.getElementById('result-search')?.value || '').toLowerCase();
+  // Group scores by target
+  const byTarget = {};
+  for (const s of appState.scores) {
+    if (q && !s.target.toLowerCase().includes(q)) continue;
+    const key = s.target + '|' + s.targetType;
+    if (!byTarget[key]) byTarget[key] = { target: s.target, targetType: s.targetType, scores: [] };
+    byTarget[key].scores.push(s);
+  }
+  const summary = document.getElementById('results-summary');
+  const tbody = document.querySelector('#results-table tbody');
+
+  const keys = Object.keys(byTarget).sort();
+  if (keys.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px">暂无评分数据</td></tr>';
+    summary.innerHTML = '';
+    return;
+  }
+
+  summary.innerHTML = `<div style="margin-bottom:12px;font-size:13px;color:var(--text-muted)">共 <strong>${keys.length}</strong> 个被评对象，<strong>${appState.scores.length}</strong> 条评分记录</div>`;
+
+  tbody.innerHTML = keys.map(key => {
+    const g = byTarget[key];
+    const avg = g.scores.reduce((a, s) => a + s.total, 0) / g.scores.length;
+    const typeLabel = g.targetType === 'team' ? '🏢 团队' : '👤 成员';
+    const initials = g.target.slice(0, 1);
+    const color = g.targetType === 'team' ? '#8b5cf6' : '#0ea5e9';
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="av-sm" style="background:${color}">${initials}</div>
+          <div>
+            <div style="font-weight:600">${g.target}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${typeLabel}</div>
+          </div>
+        </div>
+      </td>
+      <td>${typeLabel}</td>
+      <td><strong>${g.scores.length}</strong> 人评过</td>
+      <td><strong style="color:var(--primary)">${avg.toFixed(1)}</strong></td>
+      <td><button class="btn btn-outline btn-sm" onclick="showDetail('${g.target}','${g.targetType}')">查看明细</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function showDetail(target, targetType) {
+  const scores = appState.scores.filter(s => s.target === target && s.targetType === targetType);
+  const avg = scores.reduce((a, s) => a + s.total, 0) / scores.length;
+  const typeLabel = targetType === 'team' ? '🏢 团队评价表' : '👤 成员评价表';
+  const detailTitles = targetType === 'team'
+    ? ['节点完整性(10)', 'AI介入清晰度(20)', '真实性与契合度(20)', '建言质量(20)', '团队痛点暴露(10)', '团队心得总结(20)']
+    : ['场景明确性(30)', '成果量化度(30)', '痛点暴露(15)', '心得总结(20)', '个人建言质量(5)'];
+  const detailKeys = targetType === 'team'
+    ? ['team_1','team_2','team_3','team_4','team_5','team_6']
+    : ['member_1','member_2','member_3','member_4','member_5'];
+
+  document.getElementById('detail-title').textContent = `${target} — 评分明细（${scores.length} 人评分）`;
+  document.getElementById('detail-body').innerHTML = `
+    <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+      <div><span style="font-size:13px;color:var(--text-muted)">评价表类型：</span><span class="tag">${typeLabel}</span></div>
+      <div style="font-size:18px;font-weight:700;color:var(--primary)">平均 ${avg.toFixed(1)} 分</div>
+    </div>
+    ${scores.map((s, i) => {
+      const ts = new Date(s.timestamp).toLocaleString('zh-CN');
+      const rows = detailKeys.map((k, j) => {
+        const v = s.scores[k] ?? '-';
+        return `<tr><td style="width:40%">${detailTitles[j]}</td><td><strong>${v}</strong></td></tr>`;
+      }).join('');
+      return `<div style="border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden">
+        <div style="background:#f8fafc;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="av-sm" style="background:var(--primary);font-size:11px">${s.evaluator[0]}</div>
+            <div>
+              <div style="font-weight:600;font-size:13px">${s.evaluator}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${s.evaluatorGroup}</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:16px;font-weight:700;color:var(--primary)">${s.total}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${ts}</div>
+          </div>
+        </div>
+        <table style="width:100%;font-size:12px">
+          ${rows}
+        </table>
+      </div>`;
+    }).join('')}
+  `;
+  openModal('modal-detail');
+}
+
+// ============================================================
+// ADMIN: CONFIG
+// ============================================================
+async function saveConfig() {
+  appState.config.binId = document.getElementById('cfg-bin-id').value.trim();
+  appState.config.masterKey = document.getElementById('cfg-master-key').value.trim();
+  appState.config.adminPassword = document.getElementById('cfg-admin-pwd').value.trim();
+  if (!appState.config.adminPassword) { alert('管理员密码不能为空'); return; }
+  const ok = await saveData();
+  if (ok) {
+    document.getElementById('cfg-saved').style.display = 'inline';
+    setTimeout(() => document.getElementById('cfg-saved').style.display = 'none', 3000);
+    if (appState.config.binId) {
+      setSyncStatus('info', '已启用 JSONBin 跨设备同步');
+      setTimeout(() => setSyncStatus(null, null), 3000);
+    }
+  }
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportResults() {
+  if (appState.scores.length === 0) { alert('暂无数据可导出'); return; }
+  const headers = ['被评人', '类型', '评分人', '评分人小组', '评价表类型', '总分', '评分时间'];
+  const detailKeys = ['team_1','team_2','team_3','team_4','team_5','team_6',
+    'member_1','member_2','member_3','member_4','member_5'];
+  const detailTitles = ['节点完整性','AI介入清晰度','真实性与契合度','建言质量','团队痛点暴露','团队心得总结',
+    '场景明确性','成果量化度','痛点暴露','心得总结','个人建言质量'];
+  const detailCols = ['team_1','team_2','team_3','team_4','team_5','team_6',
+    'member_1','member_2','member_3','member_4','member_5'];
+
+  // Determine which detail columns are actually used
+  const usedCols = new Set(appState.scores.map(s => s.formType === 'team' ? 'team' : 'member'));
+
+  let csv = headers.join(',') + '\n';
+  for (const s of appState.scores) {
+    const cols = usedCols.has(s.formType === 'team' ? 'team' : 'member')
+      ? (s.formType === 'team' ? ['team_1','team_2','team_3','team_4','team_5','team_6'] : ['member_1','member_2','member_3','member_4','member_5']) : [];
+    const extraHeaders = cols.map((k, i) => detailTitles[detailKeys.indexOf(k)] + '(' + (s.formType === 'team' ? [10,20,20,20,10,20][i] : [30,30,15,20,5][i]) + '分)');
+    const extraVals = cols.map(k => s.scores[k] ?? '');
+
+    if (csv.split('\n')[0].split(',').length === headers.length) {
+      // Replace header row
+      csv = (headers.concat(extraHeaders)).join(',') + '\n';
+    }
+    const row = [
+      `"${s.target}"`,
+      `"${s.targetType === 'team' ? '团队' : '成员'}"`,
+      `"${s.evaluator}"`,
+      `"${s.evaluatorGroup}"`,
+      `"${s.formType === 'team' ? '团队评价表' : '成员评价表'}"`,
+      s.total,
+      `"${new Date(s.timestamp).toLocaleString('zh-CN')}"`
+    ].concat(extraVals.map(v => v));
+    csv += row.join(',') + '\n';
+  }
+
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `AINative评分汇总_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadData();
+
+// Restore session
+const savedEval = sessionStorage.getItem('eval');
+if (savedEval) {
+  currentEvaluator = JSON.parse(savedEval);
+  showView('evaluator-list');
+  renderEvaluatorTargets();
+} else if (checkAdminSession()) {
+  // admin session handled inside
+} else {
+  showView('home');
+}
+
+// Mobile / WeChat tip detection
+(function detectMobile() {
+  const ua = navigator.userAgent || '';
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const isWeChat = /MicroMessenger/i.test(ua);
+  if (isMobile) {
+    const tip = document.getElementById('mobile-tip');
+    if (tip) {
+      if (isWeChat) {
+        tip.innerHTML = '📱 检测到您在 <strong>微信</strong> 中打开本页。微信内置浏览器可能<strong>自动清理</strong>评分数据，请点击右上角 ⋯ → <strong>在浏览器中打开</strong>，使用 Chrome / Safari / 浏览器访问，避免数据丢失。';
+      }
+      tip.style.display = 'block';
+    }
+  }
+})();
+</script>
+</body>
+</html>
