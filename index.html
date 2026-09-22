@@ -1237,7 +1237,6 @@ function adminLogin() {
     })
     .finally(() => showLoading(false));
 }
-}
 
 function checkAdminSession() {
   if (sessionStorage.getItem('admin') === '1') {
