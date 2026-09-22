@@ -1957,16 +1957,32 @@ function renderResults() {
       <td><strong>${r.avg.toFixed(1)}</strong> / 100</td>
       <td>
         <button class="btn btn-outline btn-sm" onclick="showDetail('${escAttr(r.key)}')">查看明细</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteResult('${escAttr(r.targetId)}','${escAttr(quarterKey(r.quarter))}','${escAttr(r.targetName)}','${escAttr(r.targetType)}')">删除</button>
         ${isAdminEditing ? `<button class="btn btn-danger btn-sm" onclick="adminEditScore('${escAttr(r.targetId)}')">调整</button>` : ''}
       </td>
     </tr>
   `).join('');
 }
 
+function deleteResult(targetId, qKey, targetName, targetType) {
+  const [fy, num] = qKey.split('-');
+  const [yf, yn] = [parseInt(fy), parseInt(num.replace('Q',''))];
+  const matched = appState.scores.filter(s => s.targetId===targetId && s.quarter.fy===yf && s.quarter.num===yn);
+  if (!matched.length) { alert('未找到对应评分，可能已被删除'); return; }
+  const typeLabel = targetType==='team' ? '🏢 团队' : '👤 成员';
+  const quarterLabel = `${yf}财年Q${yn}（${getQuarterMonths(yn)}）`;
+  if (!confirm(`确定删除${typeLabel}「${targetName}」在「${quarterLabel}」的全部 ${matched.length} 条评分吗？\n\n删除后该成员/团队在该季度将可被重新评分。`)) return;
+  appState.scores = appState.scores.filter(s => !(s.targetId===targetId && s.quarter.fy===yf && s.quarter.num===yn));
+  saveData();
+  renderResults();
+  alert(`✅ 已删除「${targetName}」的 ${matched.length} 条评分`);
+}
+
 function showDetail(key) {
   const [targetId, qKey] = key.split('|');
   const [fy,num] = qKey.split('-');
-  const [yf,yn] = [parseInt('20'+fy), parseInt(num.replace('Q',''))];
+  // quarterKey 已是短年份格式 (如 "26-Q1")，不要拼 "20"，否则与 s.quarter.fy (短年份) 不匹配
+  const [yf,yn] = [parseInt(fy), parseInt(num.replace('Q',''))];
   const groupScores = appState.scores.filter(s => s.targetId===targetId && s.quarter.fy===yf && s.quarter.num===yn);
   if (!groupScores.length) return;
   const first = groupScores[0];
