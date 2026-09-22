@@ -501,6 +501,8 @@ select.form-control { cursor: pointer; }
             <label class="btn btn-outline btn-sm" style="cursor:pointer">📥 导入数据（合并）
               <input type="file" accept=".json" style="display:none" onchange="handleImport(this)">
             </label>
+            <button class="btn btn-primary btn-sm" onclick="copyShareUrl(false)" title="把基础数据（成员+关系+模板）打包到 URL，发给对方打开就能同步">🔗 复制基础数据分享链接</button>
+            <button class="btn btn-primary btn-sm" onclick="copyShareUrl(true)" title="包含已有的评分记录">🔗 复制完整数据分享链接</button>
             <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑️ 清空所有数据</button>
           </div>
         </div>
@@ -797,6 +799,70 @@ function refreshSyncStatus() {
     if (!s || Date.now()-s.at > 30000) { setSyncStatus(null,null); return; }
     setSyncStatus(s.level, s.msg);
   } catch(e){}
+}
+
+// ===== 数据分享 URL（无需 JSONBin，跨浏览器同步用）=====
+function packToUrl(payload) {
+  // 压缩：排除 _savedAt，URL-safe base64
+  const slim = { config: payload.config, quarters: payload.quarters, templates: payload.templates,
+                 members: payload.members, relations: payload.relations, scores: payload.scores };
+  const json = JSON.stringify(slim);
+  const b64 = btoa(unescape(encodeURIComponent(json)));
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function unpackFromUrl(s) {
+  try {
+    let b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    const json = decodeURIComponent(escape(atob(b64)));
+    return JSON.parse(json);
+  } catch(e) { console.warn('分享链接解析失败：', e); return null; }
+}
+
+function buildShareUrl(includeScores=true) {
+  const url = new URL(location.href);
+  url.hash = '';
+  const payload = buildPayload();
+  if (!includeScores) payload.scores = [];
+  url.searchParams.set('share', packToUrl(payload));
+  return url.toString();
+}
+
+async function copyShareUrl(includeScores=true) {
+  const url = buildShareUrl(includeScores);
+  try {
+    await navigator.clipboard.writeText(url);
+    alert(`✅ 分享链接已复制到剪贴板！\n\n长 ${url.length} 字符${url.length>2000?'（较长的链接）':''}。\n\n📌 把链接发给评分人，对方打开即可看到您最新配置的数据。`);
+  } catch(e) {
+    prompt('请手动复制下面这个链接：', url);
+  }
+}
+
+function tryImportFromUrl() {
+  const sp = new URLSearchParams(location.search);
+  const share = sp.get('share');
+  if (!share) return false;
+  const remote = unpackFromUrl(share);
+  if (!remote) return false;
+  // 智能合并：以远程为基，把本地新增的 scores 也保留
+  if (remote.config) appState.config = { ...appState.config, ...remote.config };
+  if (remote.quarters) appState.quarters = remote.quarters;
+  if (remote.templates) appState.templates = remote.templates;
+  if (remote.members) appState.members = remote.members;
+  if (remote.relations) appState.relations = remote.relations;
+  if (remote.scores && remote.scores.length) {
+    // 合并 scores（按 id 去重）
+    const map = new Map(appState.scores.map(s=>[s.id,s]));
+    remote.scores.forEach(s => { if (!map.has(s.id)) map.set(s.id, s); });
+    appState.scores = [...map.values()];
+  }
+  lsWrite(buildPayload());
+  setSyncStatus('ok', '已从分享链接导入数据');
+  console.log('✅ 已从分享链接导入数据：', {
+    members: appState.members.length, relations: appState.relations.length, scores: appState.scores.length
+  });
+  return true;
 }
 
 async function exportAllData() {
@@ -1550,7 +1616,7 @@ function evaluatorLogin() {
 
   const targets = getAssignedTargets(name, group);
   if (targets.length === 0) {
-    // 诊断：找姓名相同的关系，看看实际记录的小组名
+    // 诊断 1：找姓名相同的关系
     const sameName = appState.relations.filter(r => r.evaluator === name);
     if (sameName.length > 0) {
       const groups = [...new Set(sameName.map(r => r.evaluatorGroup || '（未填写）'))];
@@ -1562,7 +1628,24 @@ function evaluatorLogin() {
         `请按系统记录的小组名称重新输入，或联系管理员核对。`
       );
     } else {
-      alert('当前季度没有分配给您评分的对象，请联系管理员。');
+      // 诊断 2：关系表里没有这个人，深入排查
+      const memberByName = appState.members.find(m => m.name === name);
+      const fuzzyNames = [...new Set(
+        appState.relations.concat(appState.members.map(m=>({evaluator:m.name})))
+          .map(r => r.evaluator)
+          .filter(n => n && (n.includes(name) || name.includes(n)))
+      )].slice(0, 5);
+      alert(
+        `❌ 系统里没有找到「${name}」的评分关系。\n\n` +
+        (memberByName
+          ? `👤 成员名单中有「${name}」（小组：${memberByName.group || '（未填写）'}），但评分关系表里没有记录。\n\n`
+          : `👤 成员名单中也没有「${name}」。评分人必须先在成员名单中存在。\n\n`) +
+        `请确认：\n` +
+        `  ① 管理员是否真的在「评分关系分配」页设置了「${name} → 齐然然」？\n` +
+        `  ② 是否点击了「保存」按钮？\n` +
+        `  ③ 是否在不同浏览器/设备登录（数据可能未同步）？\n\n` +
+        (fuzzyNames.length ? `💡 系统里相近的姓名有：${fuzzyNames.join('、')}` : '')
+      );
     }
     currentEvaluator = null; currentQuarter = null;
     sessionStorage.removeItem('eval');
@@ -2006,16 +2089,51 @@ function escAttr(str) {
   return String(str).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// 控制台调试快捷方式：直接在浏览器 F12 控制台输入 dumpRelations() 即可查看
+window.dumpRelations = function() {
+  console.log('========== 评分关系原始数据 ==========');
+  console.log(`共 ${appState.relations.length} 条关系`);
+  console.table(appState.relations);
+  const byEval = {};
+  appState.relations.forEach(r => {
+    const k = `${r.evaluator}（${r.evaluatorGroup||'未填写小组'}）`;
+    byEval[k] = (byEval[k]||0) + 1;
+  });
+  console.log('按评分人分组：');
+  console.table(byEval);
+  console.log('查询指定评分人：dumpRelations("任杰")');
+  if (arguments.length) {
+    const name = arguments[0];
+    const found = appState.relations.filter(r => r.evaluator === name);
+    console.log(`「${name}」的关系：`, found);
+  }
+  return '已打印到控制台';
+};
+
+// 控制台调试：查看成员名单
+window.dumpMembers = function() {
+  console.log('========== 成员名单 ==========');
+  console.table(appState.members.map(m => ({姓名:m.name, 岗位:m.position, 小组:m.group, 模板:m.templateId})));
+};
+
 // ============================================================
 // INIT
 // ============================================================
 (function init() {
   loadData();
   initDefaultData();
+  const imported = tryImportFromUrl();
+  if (imported) {
+    console.log('📥 从分享链接导入了数据');
+    // 清除 URL 里的 share 参数（保留可读 URL）
+    const url = new URL(location.href); url.searchParams.delete('share');
+    history.replaceState(null, '', url.toString());
+  }
   if (!checkAdminSession()) {
     showView('home');
   }
   populateQuarterSelect();
+  refreshSyncStatus();
 })();
 </script>
 </body>
