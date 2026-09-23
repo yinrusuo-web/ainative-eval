@@ -1062,6 +1062,8 @@ function loadData() {
   }
 
   // 合并后立即写回 localStorage，下次刷新就不用再合并了
+  const isNewUser = !data; // 标记：是否为首次访问（本地无数据）
+  window.__isNewUser = isNewUser; // 传给 init() 中的云端合并逻辑
   if (data) {
     lsWrite(buildPayload());
     const addedMembers = appState.members.length - (data.members?.length || 0);
@@ -2888,9 +2890,10 @@ window.dumpMembers = function() {
       // 历史 bug：A 在 14:00 保存但 pushToBin 失败，A 刷新时 fetchFromBin 拉到云端 13:00 的旧数据
       //          mergeRemote 会用云端覆盖掉本地 14:00 的新数据，导致数据回滚
       // 修复：payload 自带 _savedAt，本地比云端新就保留本地，不合并
+      // 🆕 特例：新用户（本地无数据）始终以云端为准，不比较时间戳
       const remoteSavedAt = remote._savedAt || '0';
       const localSavedAt = lsRead()?._savedAt || '0';
-      if (localSavedAt > remoteSavedAt) {
+      if (!window.__isNewUser && localSavedAt > remoteSavedAt) {
         console.log(`⏭️ 本地比云端新（本地 ${localSavedAt} > 云端 ${remoteSavedAt}），跳过 mergeRemote`);
         setSyncStatus('warn', `⚠️ 本地有未同步修改，跳过云端拉取（本地 ${localSavedAt}）`);
         return;
