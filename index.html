@@ -2800,13 +2800,12 @@ window.dumpMembers = function() {
         setSyncStatus('info', '云端暂无数据');
         return;
       }
-      // 比对云端与本地关键数组长度，判断是否需要合并（避免无意义 UI 抖动）
+      // 修复：不能再用"长度比对"短路 —— 长度相同但内容可能完全不同
+      // 历史 bug：A 清空后重新维护关系，总数若与 B 本地相同，B 会判"云端已是最新"
+      //           直接 return 跳过 mergeRemote，导致 B 永远看不到 A 的修改
+      // 现在：每次拉到云端都走 mergeRemote（其内部已有"云端赢 + 本地独有项保留"逻辑，安全）
       const cloudSig = `${remote.members?.length||0}-${remote.relations?.length||0}-${remote.scores?.length||0}`;
       const localSig = `${appState.members.length}-${appState.relations.length}-${appState.scores.length}`;
-      if (cloudSig === localSig) {
-        setSyncStatus('ok', '云端已是最新');
-        return;
-      }
       mergeRemote(remote);
       lsWrite(buildPayload());
       setSyncStatus('ok', `✅ 已从云端同步（成员 ${appState.members.length}、关系 ${appState.relations.length}、评分 ${appState.scores.length}）`);
@@ -2814,8 +2813,17 @@ window.dumpMembers = function() {
       // 同步刷新相关 UI（按当前所在页面）
       populateQuarterSelect();
       const cv = document.querySelector('.view.active')?.id;
-      if (cv === 'admin-panel') { renderAdminStats(); switchAdminTab(currentAdminTab); }
-      else if (cv === 'evaluator-panel') { renderEvaluatorPanel(); }
+      console.log('📥 同步回调：视图=', cv, '| 云端 relations=', remote.relations?.length, '| 合并后 appState.relations=', appState.relations.length);
+      if (cv === 'admin-panel') {
+        renderAdminStats();
+        switchAdminTab(currentAdminTab);
+        // 强制刷新关系列表（即便当前不在 relations 标签，数据也已更新）
+        renderRelations();
+      } else if (cv === 'evaluator-panel') {
+        renderEvaluatorPanel();
+      } else {
+        // 首页 / 其他视图：数据已合并到 appState，但无需刷新 UI（评分关系不在此视图）
+      }
     }).catch(e => {
       console.warn('云端拉取失败：', e.message);
       setSyncStatus('warn', '云端拉取失败，使用本地数据');
