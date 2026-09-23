@@ -913,9 +913,7 @@ const DEFAULT_DATA = {
     {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclrh54ypkc4p',targetName:'袁园',targetType:'member'},
     {evaluator:'时明未',evaluatorGroup:'运维小组',targetId:'mem-muclr6r9iv940z',targetName:'殷茹莎',targetType:'member'}
   ],
-  scores: [
-    {id:'score-mucm0gcbmiph7t',evaluator:'殷茹莎',evaluatorGroup:'运维小组',quarter:{fy:26,num:2},targetId:'mem-muck7lkbe8ouzk',targetName:'任杰',targetType:'member',templateId:'tmpl-member-default',scores:{q1:30,q2:18,q3:15,q4:12,q5:5},total:80,timestamp:'2026-09-22T11:47:27.036Z'}
-  ]
+  scores: []
 };
 
 const LS_KEY = 'ainative-eval-v2';
@@ -1099,9 +1097,14 @@ function mergeRemote(remote) {
     const m = mergeCloudDefault(remote.relations, DEFAULT_DATA.relations, r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`);
     appState.relations = appendLocalOnly(m, appState.relations, r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`);
   }
-  if (remote.scores && remote.scores.length) {
-    const m = mergeCloudDefault(remote.scores, DEFAULT_DATA.scores, s => s.id);
-    appState.scores = appendLocalOnly(m, appState.scores, s => s.id);
+  if (remote.scores) { // 注意：用 remote.scores 而不是 length，因为云端可能是空数组（管理员已删除全部评分）
+    if (remote.scores.length === 0) {
+      // 云端明确为空 → 接受"删除"意图，清空本地（避免本地缓存的测试数据复活）
+      appState.scores = [];
+    } else {
+      const m = mergeCloudDefault(remote.scores, DEFAULT_DATA.scores, s => s.id);
+      appState.scores = appendLocalOnly(m, appState.scores, s => s.id);
+    }
   }
 }
 
