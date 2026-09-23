@@ -665,9 +665,255 @@ select.form-control { cursor: pointer; }
 // ============================================================
 const DEFAULT_CONFIG = {
   adminPassword: 'admin123',
-  // 🔗 JSONBin 配置（binId 公开，masterKey 完整版已填入）
+  // 🔗 JSONBin 配置
   binId: '6ab23c4fac6210605ae8a32c',
   masterKey: '$2a$10$i7aVjFoFY1RNzy/nK677/O5OtZ.JG6IzGDtL7Zmp.soBJEB0vNpcK'
+};
+
+// 🛡️ 兜底数据：跨设备/新用户首次访问时直接显示完整名单与评价关系
+//   来源：ainative-eval-backup-1790079157773.json（2026-09-22 备份）
+//   任何设备/浏览器打开页面，都默认带这套数据，无需等云端同步
+const DEFAULT_DATA = {
+  quarters: [
+    {fy:26,num:1},
+    {fy:26,num:2}
+  ],
+  templates: [
+    {id:'tmpl-team-default',name:'团队季度评价',type:'team',totalScore:100,questions:[
+      {id:'q1',title:'节点完整性',desc:'"一张图"是否完整涵盖需求分析、产品设计、代码开发等8个关键节点',maxScore:10},
+      {id:'q2',title:'AI介入清晰度',desc:'是否在图上明确标注各节点具体使用的AI工具及其介入程度',maxScore:20},
+      {id:'q3',title:'真实性与契合度',desc:'⭐一票否决项。如发现为应付考核过度包装，此项直接记0分。',maxScore:20},
+      {id:'q4',title:'建言质量',desc:'站在团队管理和业务全局高度，提出能实质性推动整体效能提升的建设性建议',maxScore:20},
+      {id:'q5',title:'团队痛点暴露',desc:'是否敢于准确剖析团队在推行AI Native过程中遇到的共性瓶颈',maxScore:10},
+      {id:'q6',title:'团队心得总结',desc:'对团队前期探索AI-Native的真实体验与沉淀的方法论进行总结',maxScore:20}
+    ]},
+    {id:'tmpl-member-default',name:'成员月度评价',type:'member',totalScore:100,questions:[
+      {id:'q1',title:'场景明确性',desc:'是否清晰逐一地阐述了在哪个具体环节使用了什么具体的AI能力或工具',maxScore:30},
+      {id:'q2',title:'成果量化度',desc:'必须提供真实的量化支撑（如工时缩减比例、Bug修复速度等）',maxScore:30},
+      {id:'q3',title:'痛点暴露',desc:'是否准确指出了工具的局限性（如AI幻觉、上下文丢失等）',maxScore:15},
+      {id:'q4',title:'心得总结',desc:'是否基于真实使用体验的方法总结和技巧沉淀',maxScore:20},
+      {id:'q5',title:'个人建言质量',desc:'基于一线使用者切身感受，对工具链配置或工作流提出具体改进建议',maxScore:5}
+    ]}
+  ],
+  members: [
+    {id:'mem-muck7lkbe8ouzk',name:'任杰',position:'产品经理',group:'产品研发1组',templateId:'tmpl-member-default'},
+    {id:'mem-muck8zytcumz6t',name:'齐然然',position:'研发主管',group:'产品研发1组',templateId:'tmpl-team-default'},
+    {id:'mem-mucljmor3yqg87',name:'丁晓龙',position:'后端开发',group:'产品研发1组',templateId:'tmpl-member-default'},
+    {id:'mem-muclk06ajs5mg4',name:'周俊贵',position:'前端开发',group:'产品研发1组',templateId:'tmpl-member-default'},
+    {id:'mem-muclka3xdsqzns',name:'王扬扬',position:'软件测试',group:'产品研发1组',templateId:'tmpl-member-default'},
+    {id:'mem-muclkmjaoaypy1',name:'贾晓丽',position:'软件测试',group:'产品研发1组',templateId:'tmpl-member-default'},
+    {id:'mem-muclkvhf0hsyzg',name:'侯思杰',position:'后端开发',group:'产品研发1组',templateId:'tmpl-member-default'},
+    {id:'mem-mucllcqw95guhn',name:'孙明',position:'研发主管',group:'产品研发2组',templateId:'tmpl-team-default'},
+    {id:'mem-mucllnt81cregz',name:'甘贤贵',position:'后端开发',group:'产品研发2组',templateId:'tmpl-member-default'},
+    {id:'mem-muclm3k79yi1my',name:'姜永彪',position:'研发主管',group:'职业健康组',templateId:'tmpl-team-default'},
+    {id:'mem-muclmbsa6ywta6',name:'金芳',position:'研发主管',group:'职业健康组',templateId:'tmpl-team-default'},
+    {id:'mem-muclmqfk0c6iw1',name:'潘伟',position:'后端开发',group:'职业健康组',templateId:'tmpl-member-default'},
+    {id:'mem-mucln22v810lzp',name:'闫壮壮',position:'后端开发',group:'职业健康组',templateId:'tmpl-member-default'},
+    {id:'mem-muclnbzbcsqzw4',name:'陈墨林',position:'后端开发',group:'职业健康组',templateId:'tmpl-member-default'},
+    {id:'mem-muclnlidrpdwkt',name:'于航',position:'软件测试',group:'职业健康组',templateId:'tmpl-member-default'},
+    {id:'mem-muclnuuaf05wf5',name:'胡天恒',position:'软件测试',group:'职业健康组',templateId:'tmpl-member-default'},
+    {id:'mem-muclo5lazf77nj',name:'顾欣',position:'软件测试',group:'职业健康组',templateId:'tmpl-member-default'},
+    {id:'mem-muclodrxapdpsl',name:'宗杰',position:'研发主管',group:'综合业务1组',templateId:'tmpl-team-default'},
+    {id:'mem-muclomyn3947w8',name:'许梦',position:'产品经理',group:'综合业务1组',templateId:'tmpl-member-default'},
+    {id:'mem-muclowi66npta6',name:'胡春连',position:'后端开发',group:'综合业务1组',templateId:'tmpl-member-default'},
+    {id:'mem-muclp31xkmmznq',name:'辛磊',position:'后端开发',group:'综合业务1组',templateId:'tmpl-member-default'},
+    {id:'mem-muclpbwqywlmx3',name:'孙丽丽',position:'后端开发',group:'综合业务1组',templateId:'tmpl-member-default'},
+    {id:'mem-muclpij6w2tgjn',name:'孙陈龙',position:'后端开发',group:'综合业务1组',templateId:'tmpl-member-default'},
+    {id:'mem-muclps7aej1a7d',name:'时明未',position:'运维',group:'运维小组',templateId:'tmpl-member-default'},
+    {id:'mem-muclq0xeyq5e0r',name:'顾海云',position:'软件测试',group:'综合业务1组',templateId:'tmpl-member-default'},
+    {id:'mem-muclq72e82huz6',name:'周瑜',position:'软件测试',group:'综合业务1组',templateId:'tmpl-member-default'},
+    {id:'mem-muclqexnhjf7t6',name:'顾超',position:'研发主管',group:'综合业务2组',templateId:'tmpl-team-default'},
+    {id:'mem-muclqlwcjgt4v1',name:'朱其',position:'后端开发',group:'综合业务2组',templateId:'tmpl-member-default'},
+    {id:'mem-muclqtgzriv5qu',name:'陈建成',position:'后端开发',group:'综合业务2组',templateId:'tmpl-member-default'},
+    {id:'mem-muclr6r9iv940z',name:'殷茹莎',position:'运维',group:'运维小组',templateId:'tmpl-member-default'},
+    {id:'mem-muclrh54ypkc4p',name:'袁园',position:'软件测试',group:'综合业务2组',templateId:'tmpl-member-default'},
+    {id:'mem-muclyql6az219x',name:'赵旭明',position:'研发主管',group:'运维小组',templateId:'tmpl-team-default'}
+  ],
+  relations: [
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclm3k79yi1my',targetName:'姜永彪',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclmbsa6ywta6',targetName:'金芳',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclmqfk0c6iw1',targetName:'潘伟',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-mucln22v810lzp',targetName:'闫壮壮',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclnbzbcsqzw4',targetName:'陈墨林',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclnlidrpdwkt',targetName:'于航',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclnuuaf05wf5',targetName:'胡天恒',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclo5lazf77nj',targetName:'顾欣',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclodrxapdpsl',targetName:'宗杰',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclomyn3947w8',targetName:'许梦',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclowi66npta6',targetName:'胡春连',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclp31xkmmznq',targetName:'辛磊',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclpbwqywlmx3',targetName:'孙丽丽',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclpij6w2tgjn',targetName:'孙陈龙',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclq0xeyq5e0r',targetName:'顾海云',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclq72e82huz6',targetName:'周瑜',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclqexnhjf7t6',targetName:'顾超',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclqlwcjgt4v1',targetName:'朱其',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclqtgzriv5qu',targetName:'陈建成',targetType:'member'},
+    {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclrh54ypkc4p',targetName:'袁园',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclm3k79yi1my',targetName:'姜永彪',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclmbsa6ywta6',targetName:'金芳',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclmqfk0c6iw1',targetName:'潘伟',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-mucln22v810lzp',targetName:'闫壮壮',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclnbzbcsqzw4',targetName:'陈墨林',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclnlidrpdwkt',targetName:'于航',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclnuuaf05wf5',targetName:'胡天恒',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclo5lazf77nj',targetName:'顾欣',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclodrxapdpsl',targetName:'宗杰',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclomyn3947w8',targetName:'许梦',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclowi66npta6',targetName:'胡春连',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclp31xkmmznq',targetName:'辛磊',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclpbwqywlmx3',targetName:'孙丽丽',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclpij6w2tgjn',targetName:'孙陈龙',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclq0xeyq5e0r',targetName:'顾海云',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclq72e82huz6',targetName:'周瑜',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclqexnhjf7t6',targetName:'顾超',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclqlwcjgt4v1',targetName:'朱其',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclqtgzriv5qu',targetName:'陈建成',targetType:'member'},
+    {evaluator:'孙明',evaluatorGroup:'产品研发2组',targetId:'mem-muclrh54ypkc4p',targetName:'袁园',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclm3k79yi1my',targetName:'姜永彪',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclmbsa6ywta6',targetName:'金芳',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclmqfk0c6iw1',targetName:'潘伟',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-mucln22v810lzp',targetName:'闫壮壮',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclnbzbcsqzw4',targetName:'陈墨林',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclnlidrpdwkt',targetName:'于航',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclnuuaf05wf5',targetName:'胡天恒',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclo5lazf77nj',targetName:'顾欣',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclodrxapdpsl',targetName:'宗杰',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclomyn3947w8',targetName:'许梦',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclowi66npta6',targetName:'胡春连',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclp31xkmmznq',targetName:'辛磊',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclpbwqywlmx3',targetName:'孙丽丽',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclpij6w2tgjn',targetName:'孙陈龙',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclq0xeyq5e0r',targetName:'顾海云',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclq72e82huz6',targetName:'周瑜',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclqexnhjf7t6',targetName:'顾超',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclqlwcjgt4v1',targetName:'朱其',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclqtgzriv5qu',targetName:'陈建成',targetType:'member'},
+    {evaluator:'齐然然',evaluatorGroup:'产品研发1组',targetId:'mem-muclrh54ypkc4p',targetName:'袁园',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muck7lkbe8ouzk',targetName:'任杰',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muck8zytcumz6t',targetName:'齐然然',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-mucljmor3yqg87',targetName:'丁晓龙',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclk06ajs5mg4',targetName:'周俊贵',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclka3xdsqzns',targetName:'王扬扬',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclkmjaoaypy1',targetName:'贾晓丽',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclkvhf0hsyzg',targetName:'侯思杰',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-mucllcqw95guhn',targetName:'孙明',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-mucllnt81cregz',targetName:'甘贤贵',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclodrxapdpsl',targetName:'宗杰',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclomyn3947w8',targetName:'许梦',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclowi66npta6',targetName:'胡春连',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclp31xkmmznq',targetName:'辛磊',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclpbwqywlmx3',targetName:'孙丽丽',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclpij6w2tgjn',targetName:'孙陈龙',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclq0xeyq5e0r',targetName:'顾海云',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclq72e82huz6',targetName:'周瑜',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclqexnhjf7t6',targetName:'顾超',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclqlwcjgt4v1',targetName:'朱其',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclqtgzriv5qu',targetName:'陈建成',targetType:'member'},
+    {evaluator:'姜永彪',evaluatorGroup:'职业健康组',targetId:'mem-muclrh54ypkc4p',targetName:'袁园',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muck7lkbe8ouzk',targetName:'任杰',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muck8zytcumz6t',targetName:'齐然然',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-mucljmor3yqg87',targetName:'丁晓龙',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclk06ajs5mg4',targetName:'周俊贵',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclka3xdsqzns',targetName:'王扬扬',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclkmjaoaypy1',targetName:'贾晓丽',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclkvhf0hsyzg',targetName:'侯思杰',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-mucllcqw95guhn',targetName:'孙明',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-mucllnt81cregz',targetName:'甘贤贵',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclodrxapdpsl',targetName:'宗杰',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclomyn3947w8',targetName:'许梦',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclowi66npta6',targetName:'胡春连',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclp31xkmmznq',targetName:'辛磊',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclpbwqywlmx3',targetName:'孙丽丽',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclpij6w2tgjn',targetName:'孙陈龙',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclq0xeyq5e0r',targetName:'顾海云',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclq72e82huz6',targetName:'周瑜',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclqexnhjf7t6',targetName:'顾超',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclqlwcjgt4v1',targetName:'朱其',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclqtgzriv5qu',targetName:'陈建成',targetType:'member'},
+    {evaluator:'金芳',evaluatorGroup:'职业健康组',targetId:'mem-muclrh54ypkc4p',targetName:'袁园',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muck7lkbe8ouzk',targetName:'任杰',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muck8zytcumz6t',targetName:'齐然然',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-mucljmor3yqg87',targetName:'丁晓龙',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclk06ajs5mg4',targetName:'周俊贵',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclka3xdsqzns',targetName:'王扬扬',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclkmjaoaypy1',targetName:'贾晓丽',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclkvhf0hsyzg',targetName:'侯思杰',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-mucllcqw95guhn',targetName:'孙明',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-mucllnt81cregz',targetName:'甘贤贵',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclm3k79yi1my',targetName:'姜永彪',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclmbsa6ywta6',targetName:'金芳',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclmqfk0c6iw1',targetName:'潘伟',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-mucln22v810lzp',targetName:'闫壮壮',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclnbzbcsqzw4',targetName:'陈墨林',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclnlidrpdwkt',targetName:'于航',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclnuuaf05wf5',targetName:'胡天恒',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclo5lazf77nj',targetName:'顾欣',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclqexnhjf7t6',targetName:'顾超',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclqlwcjgt4v1',targetName:'朱其',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclqtgzriv5qu',targetName:'陈建成',targetType:'member'},
+    {evaluator:'宗杰',evaluatorGroup:'综合业务1组',targetId:'mem-muclrh54ypkc4p',targetName:'袁园',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muck7lkbe8ouzk',targetName:'任杰',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muck8zytcumz6t',targetName:'齐然然',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-mucljmor3yqg87',targetName:'丁晓龙',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclk06ajs5mg4',targetName:'周俊贵',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclka3xdsqzns',targetName:'王扬扬',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclkmjaoaypy1',targetName:'贾晓丽',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclkvhf0hsyzg',targetName:'侯思杰',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-mucllcqw95guhn',targetName:'孙明',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-mucllnt81cregz',targetName:'甘贤贵',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclm3k79yi1my',targetName:'姜永彪',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclmbsa6ywta6',targetName:'金芳',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclmqfk0c6iw1',targetName:'潘伟',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-mucln22v810lzp',targetName:'闫壮壮',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclnbzbcsqzw4',targetName:'陈墨林',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclnlidrpdwkt',targetName:'于航',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclnuuaf05wf5',targetName:'胡天恒',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclo5lazf77nj',targetName:'顾欣',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclodrxapdpsl',targetName:'宗杰',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclomyn3947w8',targetName:'许梦',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclowi66npta6',targetName:'胡春连',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclp31xkmmznq',targetName:'辛磊',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclpbwqywlmx3',targetName:'孙丽丽',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclpij6w2tgjn',targetName:'孙陈龙',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclq0xeyq5e0r',targetName:'顾海云',targetType:'member'},
+    {evaluator:'顾超',evaluatorGroup:'综合业务2组',targetId:'mem-muclq72e82huz6',targetName:'周瑜',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muck7lkbe8ouzk',targetName:'任杰',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muck8zytcumz6t',targetName:'齐然然',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-mucljmor3yqg87',targetName:'丁晓龙',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclk06ajs5mg4',targetName:'周俊贵',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclka3xdsqzns',targetName:'王扬扬',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclkmjaoaypy1',targetName:'贾晓丽',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclkvhf0hsyzg',targetName:'侯思杰',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-mucllcqw95guhn',targetName:'孙明',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-mucllnt81cregz',targetName:'甘贤贵',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclm3k79yi1my',targetName:'姜永彪',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclmbsa6ywta6',targetName:'金芳',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclmqfk0c6iw1',targetName:'潘伟',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-mucln22v810lzp',targetName:'闫壮壮',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclnbzbcsqzw4',targetName:'陈墨林',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclnlidrpdwkt',targetName:'于航',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclnuuaf05wf5',targetName:'胡天恒',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclo5lazf77nj',targetName:'顾欣',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclodrxapdpsl',targetName:'宗杰',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclomyn3947w8',targetName:'许梦',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclowi66npta6',targetName:'胡春连',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclp31xkmmznq',targetName:'辛磊',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclpbwqywlmx3',targetName:'孙丽丽',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclpij6w2tgjn',targetName:'孙陈龙',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclq0xeyq5e0r',targetName:'顾海云',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclq72e82huz6',targetName:'周瑜',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclps7aej1a7d',targetName:'时明未',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclr6r9iv940z',targetName:'殷茹莎',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclqexnhjf7t6',targetName:'顾超',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclqlwcjgt4v1',targetName:'朱其',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclqtgzriv5qu',targetName:'陈建成',targetType:'member'},
+    {evaluator:'殷茹莎',evaluatorGroup:'运维小组',targetId:'mem-muclrh54ypkc4p',targetName:'袁园',targetType:'member'},
+    {evaluator:'时明未',evaluatorGroup:'运维小组',targetId:'mem-muclr6r9iv940z',targetName:'殷茹莎',targetType:'member'}
+  ],
+  scores: [
+    {id:'score-mucm0gcbmiph7t',evaluator:'殷茹莎',evaluatorGroup:'运维小组',quarter:{fy:26,num:2},targetId:'mem-muck7lkbe8ouzk',targetName:'任杰',targetType:'member',templateId:'tmpl-member-default',scores:{q1:30,q2:18,q3:15,q4:12,q5:5},total:80,timestamp:'2026-09-22T11:47:27.036Z'}
+  ]
 };
 
 const LS_KEY = 'ainative-eval-v2';
@@ -677,11 +923,11 @@ const LS_KEY = 'ainative-eval-v2';
 // ============================================================
 let appState = {
   config: { ...DEFAULT_CONFIG },
-  quarters: [],       // {fy, num, startMonth, endMonth}
-  templates: [],      // {id, name, type, totalScore, questions: [{id, title, desc, maxScore}]}
-  members: [],        // {id, name, position, group, templateId}
-  relations: [],      // {evaluator, evaluatorGroup, targetId, targetName, targetType}
-  scores: []          // {id, evaluator, evaluatorGroup, quarter, targetId, targetName, targetType, templateId, scores:{}, total, timestamp}
+  quarters: DEFAULT_DATA.quarters.map(q => ({...q})),
+  templates: DEFAULT_DATA.templates.map(t => ({...t, questions: t.questions.map(q => ({...q}))})),
+  members: DEFAULT_DATA.members.map(m => ({...m})),
+  relations: DEFAULT_DATA.relations.map(r => ({...r})),
+  scores: DEFAULT_DATA.scores.map(s => ({...s, scores: {...s.scores}, quarter: {...s.quarter}}))
 };
 
 let currentEvaluator = null;
@@ -717,13 +963,38 @@ function lsWrite(data) {
 
 function loadData() {
   const data = lsRead();
-  if (!data) return;
-  appState.config = { ...DEFAULT_CONFIG, ...(data.config || {}) };
-  appState.quarters = data.quarters || [];
-  appState.templates = data.templates || [];
-  appState.members = data.members || [];
-  appState.relations = data.relations || [];
-  appState.scores = data.scores || [];
+
+  // 🛡️ 兜底策略：始终以 DEFAULT_DATA 为基线，与本地数据合并去重
+  // - 新用户（localStorage 空）：直接用 DEFAULT_DATA
+  // - 已有部分数据的用户：DEFAULT_DATA 补齐缺失，本地的修改/新增保留
+  // - DEFAULT_DATA 缺、本地有的（如本地评分）：保留本地
+  appState.config = { ...DEFAULT_CONFIG, ...(data?.config || {}) };
+  appState.quarters = mergeByKey(data?.quarters || [], DEFAULT_DATA.quarters, q => `${q.fy}-Q${q.num}`);
+  appState.templates = mergeByKey(data?.templates || [], DEFAULT_DATA.templates, t => t.id);
+  appState.members = mergeByKey(data?.members || [], DEFAULT_DATA.members, m => m.id);
+  appState.relations = mergeByKey(data?.relations || [], DEFAULT_DATA.relations, r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`);
+  appState.scores = mergeByKey(data?.scores || [], DEFAULT_DATA.scores, s => s.id);
+
+  // 合并后立即写回 localStorage，下次刷新就不用再合并了
+  if (data) {
+    lsWrite(buildPayload());
+    const addedMembers = appState.members.length - (data.members?.length || 0);
+    const addedRelations = appState.relations.length - (data.relations?.length || 0);
+    if (addedMembers > 0 || addedRelations > 0) {
+      console.log(`📦 已合并 DEFAULT_DATA：补齐 ${addedMembers} 个成员、${addedRelations} 条关系`);
+    }
+  } else {
+    lsWrite(buildPayload());
+    console.log('📦 本地无数据，已写入 DEFAULT_DATA 兜底（成员 '+appState.members.length+' 人，关系 '+appState.relations.length+' 条）');
+  }
+}
+
+// 合并两个数组，按 keyFn 去重；本地数据覆盖同 key 的默认值
+function mergeByKey(local, defaults, keyFn) {
+  const map = new Map();
+  for (const item of defaults) map.set(keyFn(item), item);
+  for (const item of local) map.set(keyFn(item), item);  // 本地覆盖默认
+  return [...map.values()];
 }
 
 function buildPayload() {
@@ -800,12 +1071,13 @@ async function pushToBin(payload) {
 function mergeRemote(remote) {
   if (!remote) return;
   appState.config = { ...appState.config, ...(remote.config || {}) };
-  const kv = (a, b) => a; // keep local on conflict
-  if (remote.quarters) appState.quarters = remote.quarters;
-  if (remote.templates) appState.templates = remote.templates;
-  if (remote.members) appState.members = remote.members;
-  if (remote.relations) appState.relations = remote.relations;
-  if (remote.scores) appState.scores = remote.scores;
+  // 🛡️ 三方合并：DEFAULT_DATA < 云端 < 本地 appState
+  // 之前直接 if (remote.members) appState.members = remote.members; 会把本地冲成云端的空数组
+  if (remote.quarters && remote.quarters.length) appState.quarters = mergeByKey(mergeByKey(remote.quarters, DEFAULT_DATA.quarters, q => `${q.fy}-Q${q.num}`), appState.quarters, q => `${q.fy}-Q${q.num}`);
+  if (remote.templates && remote.templates.length) appState.templates = mergeByKey(mergeByKey(remote.templates, DEFAULT_DATA.templates, t => t.id), appState.templates, t => t.id);
+  if (remote.members && remote.members.length) appState.members = mergeByKey(mergeByKey(remote.members, DEFAULT_DATA.members, m => m.id), appState.members, m => m.id);
+  if (remote.relations && remote.relations.length) appState.relations = mergeByKey(mergeByKey(remote.relations, DEFAULT_DATA.relations, r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`), appState.relations, r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`);
+  if (remote.scores && remote.scores.length) appState.scores = mergeByKey(mergeByKey(remote.scores, DEFAULT_DATA.scores, s => s.id), appState.scores, s => s.id);
 }
 
 function setSyncStatus(level, msg) {
