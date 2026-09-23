@@ -1062,8 +1062,7 @@ function loadData() {
   }
 
   // 合并后立即写回 localStorage，下次刷新就不用再合并了
-  const isNewUser = !data; // 标记：是否为首次访问（本地无数据）
-  window.__isNewUser = isNewUser; // 传给 init() 中的云端合并逻辑
+  window.__isNewUser = !data; // 🆕 必须放在 if 外面：新用户（data=null）时也要设置
   if (data) {
     lsWrite(buildPayload());
     const addedMembers = appState.members.length - (data.members?.length || 0);
