@@ -787,6 +787,9 @@ const DEFAULT_DATA = {
     {id:'mem-muclrh54ypkc4p',name:'袁园',position:'软件测试',group:'综合业务2组',templateId:'tmpl-member-default'},
     {id:'mem-muclyql6az219x',name:'赵旭明',position:'研发主管',group:'运维小组',templateId:'tmpl-team-default'}
   ],
+  // 🛡️ 修复：relations 不应硬编码在 DEFAULT_DATA 里（会导致清空缓存后自动恢复旧关系）
+  // 新行为：新用户/新设备的关系留空，等云端拉取（管理员配置的真实关系）覆盖
+  relations: [],
   relations: [
     {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclm3k79yi1my',targetName:'姜永彪',targetType:'member'},
     {evaluator:'任杰',evaluatorGroup:'产品研发1组',targetId:'mem-muclmbsa6ywta6',targetName:'金芳',targetType:'member'},
@@ -1492,7 +1495,19 @@ function canEvaluatorEdit(quarter) {
 // ============================================================
 // VIEW MANAGEMENT
 // ============================================================
-function showView(id) {
+async function showView(id) {
+  // 🏢 进入评分人登录视图前，如果 init 阶段的云端拉取尚未完成，等待它完成
+  // 解决场景：新浏览器首次访问 → 点"开始评分" → 小组下拉显示默认值而非管理员配置
+  if (id === 'evaluator-login' && _pendingCloudFetch) {
+    console.log('🏢 等待云端同步完成后显示登录页…');
+    showLoading(true);
+    try {
+      await _pendingCloudFetch;
+    } finally {
+      showLoading(false);
+    }
+  }
+
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const v = document.getElementById('view-' + id);
   if (v) v.classList.add('active');
