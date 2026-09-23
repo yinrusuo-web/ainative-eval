@@ -1028,8 +1028,23 @@ function loadData() {
   appState.quarters = mergeByKey(data?.quarters || [], DEFAULT_DATA.quarters, q => `${q.fy}-Q${q.num}`);
   appState.templates = mergeByKey(data?.templates || [], DEFAULT_DATA.templates, t => t.id);
   appState.members = mergeByKey(data?.members || [], DEFAULT_DATA.members, m => m.id);
-  appState.relations = mergeByKey(data?.relations || [], DEFAULT_DATA.relations, r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`);
-  appState.scores = mergeByKey(data?.scores || [], DEFAULT_DATA.scores, s => s.id);
+  // 🛡️ 修复 relations"自动补全 DEFAULT"导致清空无效的 bug：
+  // - 历史行为：mergeByKey(local || [], DEFAULT_DATA.relations, ...) → 本地为空时把 DEFAULT 补回来
+  // - 用户反馈："清空全部+重新维护后，刷新又恢复成清空前的数据" —— 罪魁祸首就是这里
+  // - 新行为：用户主动清空（local.relations === []）就保持空，不被 DEFAULT 污染
+  //          只有新用户（localStorage 为 null）才用 DEFAULT 初始化
+  if (data && Array.isArray(data.relations)) {
+    appState.relations = mergeByKey(data.relations, [], r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`);
+  } else {
+    // 新用户（localStorage 为空）→ 拷贝一份 DEFAULT，避免污染常量
+    appState.relations = DEFAULT_DATA.relations.map(r => ({...r}));
+  }
+  // 同样的逻辑：scores 也不应被 DEFAULT 自动补全（防止误清空后又被默认值复活）
+  if (data && Array.isArray(data.scores)) {
+    appState.scores = mergeByKey(data.scores, [], s => s.id);
+  } else {
+    appState.scores = (DEFAULT_DATA.scores || []).map(s => ({...s}));
+  }
 
   // 合并后立即写回 localStorage，下次刷新就不用再合并了
   if (data) {
@@ -1072,7 +1087,12 @@ async function saveData() {
   if (_initInProgress) {
     console.log('⏸️ init 阶段跳过云端同步');
   } else {
-    pushToBin(payload).catch(e => console.warn('JSONBin 同步失败：', e.message));
+    const ok = await pushToBin(payload).catch(e => { console.warn('JSONBin 同步失败：', e.message); return false; });
+    if (!ok) {
+      // 推送失败时弹窗提醒，防止用户以为数据已同步到云端，刷新后发现数据回滚
+      setSyncStatus('error', '⚠️ 云端同步失败，请检查网络后重试');
+      alert('⚠️ 云端同步失败（数据已保存在本地）。\n请检查网络后重新保存，否则刷新后可能丢失本次修改。');
+    }
   }
   return true;
 }
@@ -1096,7 +1116,7 @@ async function fetchFromBin() {
 
 async function pushToBin(payload) {
   const { binId, masterKey } = appState.config;
-  if (!binId) return;
+  if (!binId) return false;
   const headers = { 'Content-Type': 'application/json', 'X-Bin-Versioning': 'false' };
   if (masterKey) headers['X-Master-Key'] = masterKey;
   for (let i = 0; i < 3; i++) {
@@ -1107,7 +1127,7 @@ async function pushToBin(payload) {
         method: 'PUT', headers, body: JSON.stringify(payload), signal: ctrl.signal
       });
       clearTimeout(timer);
-      if (res.ok) { setSyncStatus('ok', '已同步到 JSONBin'); return; }
+      if (res.ok) { setSyncStatus('ok', '已同步到 JSONBin'); return true; }
       if (res.status === 409) {
         const latest = await fetchFromBin();
         if (latest) {
@@ -1122,6 +1142,7 @@ async function pushToBin(payload) {
       else await new Promise(r => setTimeout(r, 1000*(i+1)));
     }
   }
+  return false;
 }
 
 function mergeRemote(remote) {
@@ -2806,6 +2827,18 @@ window.dumpMembers = function() {
       // 现在：每次拉到云端都走 mergeRemote（其内部已有"云端赢 + 本地独有项保留"逻辑，安全）
       const cloudSig = `${remote.members?.length||0}-${remote.relations?.length||0}-${remote.scores?.length||0}`;
       const localSig = `${appState.members.length}-${appState.relations.length}-${appState.scores.length}`;
+      // 🛡️ 时间戳对比：本地比云端新就跳过 merge（防止云端旧数据覆盖本地新数据）
+      // 历史 bug：A 在 14:00 保存但 pushToBin 失败，A 刷新时 fetchFromBin 拉到云端 13:00 的旧数据
+      //          mergeRemote 会用云端覆盖掉本地 14:00 的新数据，导致数据回滚
+      // 修复：payload 自带 _savedAt，本地比云端新就保留本地，不合并
+      const remoteSavedAt = remote._savedAt || '0';
+      const localSavedAt = lsRead()?._savedAt || '0';
+      if (localSavedAt > remoteSavedAt) {
+        console.log(`⏭️ 本地比云端新（本地 ${localSavedAt} > 云端 ${remoteSavedAt}），跳过 mergeRemote`);
+        setSyncStatus('warn', `⚠️ 本地有未同步修改，跳过云端拉取（本地 ${localSavedAt}）`);
+        return;
+      }
+      console.log(`✅ 云端比本地新（云端 ${remoteSavedAt} > 本地 ${localSavedAt}），执行 mergeRemote`);
       mergeRemote(remote);
       lsWrite(buildPayload());
       setSyncStatus('ok', `✅ 已从云端同步（成员 ${appState.members.length}、关系 ${appState.relations.length}、评分 ${appState.scores.length}）`);
