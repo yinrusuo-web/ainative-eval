@@ -2491,23 +2491,34 @@ window.dumpMembers = function() {
     const url = new URL(location.href); url.searchParams.delete('share');
     history.replaceState(null, '', url.toString());
   }
-  // 🔄 首次访问（localStorage 为空）时尝试从云端拉数据
+  // 🔄 每次页面加载都尝试从云端拉数据（修复 B 电脑看不到 A 修改的 bug）
   // - binId 已写死在 DEFAULT_CONFIG，所有人可拉
   // - 不阻塞页面（fire-and-forget，8 秒超时）
-  // - 本机已有数据时不再拉取，避免覆盖
-  if (!lsRead() && appState.config.binId) {
+  // - 之前的 bug：!lsRead() 导致本地有数据就不再拉，B 刷新看不到 A 的修改
+  // - 现在：每次刷新都会拉云端；mergeRemote 已修复"云端赢 + 本地独有项保留"
+  if (appState.config.binId) {
     setSyncStatus('syncing', '正在从云端同步数据…');
     fetchFromBin().then(remote => {
-      if (remote && (remote.members || remote.relations || remote.templates)) {
-        mergeRemote(remote);
-        lsWrite(buildPayload()); // 写入 localStorage，新用户下次访问就有数据了
-        setSyncStatus('ok', '✅ 已从云端加载数据');
-        console.log('📥 首次访问从 JSONBin 拉到数据');
-        // 同步刷新相关 UI
-        populateQuarterSelect();
-      } else {
-        setSyncStatus('ok', '本地模式（云端为空）');
+      if (!remote) {
+        setSyncStatus('info', '云端暂无数据');
+        return;
       }
+      // 比对云端与本地关键数组长度，判断是否需要合并（避免无意义 UI 抖动）
+      const cloudSig = `${remote.members?.length||0}-${remote.relations?.length||0}-${remote.scores?.length||0}`;
+      const localSig = `${appState.members.length}-${appState.relations.length}-${appState.scores.length}`;
+      if (cloudSig === localSig) {
+        setSyncStatus('ok', '云端已是最新');
+        return;
+      }
+      mergeRemote(remote);
+      lsWrite(buildPayload());
+      setSyncStatus('ok', `✅ 已从云端同步（成员 ${appState.members.length}、关系 ${appState.relations.length}、评分 ${appState.scores.length}）`);
+      console.log('📥 从 JSONBin 同步到最新:', cloudSig, '→', localSig, '实际→', `${appState.members.length}-${appState.relations.length}-${appState.scores.length}`);
+      // 同步刷新相关 UI（按当前所在页面）
+      populateQuarterSelect();
+      const cv = document.querySelector('.view.active')?.id;
+      if (cv === 'admin-panel') { renderAdminStats(); switchAdminTab(currentAdminTab); }
+      else if (cv === 'evaluator-panel') { renderEvaluatorPanel(); }
     }).catch(e => {
       console.warn('云端拉取失败：', e.message);
       setSyncStatus('warn', '云端拉取失败，使用本地数据');
