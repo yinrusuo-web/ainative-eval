@@ -1029,6 +1029,13 @@ function loadData() {
   // - 已有部分数据的用户：DEFAULT_DATA 补齐缺失，本地的修改/新增保留
   // - DEFAULT_DATA 缺、本地有的（如本地评分）：保留本地
   appState.config = { ...DEFAULT_CONFIG, ...(data?.config || {}) };
+  // 🛡️ 自动修复：旧的 "事业部" 已被拆分为 "事业部管理组"，自动修正
+  const OLD_GROUPS = ['产品研发1组','产品研发2组','综合业务1组','综合业务2组','职业健康组','事业部','运维小组'];
+  const NEW_GROUPS = ['产品研发1组','产品研发2组','综合业务1组','综合业务2组','职业健康组','事业部管理组','运维小组'];
+  if (appState.config.groups && appState.config.groups.includes('事业部')) {
+    console.log('🔧 检测到旧小组名 "事业部"，已自动替换为 "事业部管理组"');
+    appState.config.groups = appState.config.groups.map(g => g === '事业部' ? '事业部管理组' : g);
+  }
   appState.quarters = mergeByKey(data?.quarters || [], DEFAULT_DATA.quarters, q => `${q.fy}-Q${q.num}`);
   appState.templates = mergeByKey(data?.templates || [], DEFAULT_DATA.templates, t => t.id);
   appState.members = mergeByKey(data?.members || [], DEFAULT_DATA.members, m => m.id);
