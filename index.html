@@ -70,6 +70,22 @@ select.form-control { cursor: pointer; }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
+/* Tab 徽章（待评分/已评分 数量） */
+.tab-badge {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 8px;
+  margin-left: 4px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  vertical-align: 1px;
+}
+.tab-badge.pending { background: #fef3c7; color: #92400e; }
+.tab-badge.done { background: #d1fae5; color: #065f46; }
+
 /* Score sections */
 .score-section { margin-bottom: 24px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .score-section-header { background: #f8fafc; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--text-muted); }
@@ -302,16 +318,37 @@ select.form-control { cursor: pointer; }
   <div class="view" id="view-evaluator-list">
     <div class="card">
       <div class="card-header">
-        <span class="card-title">待评分对象</span>
+        <span class="card-title">📋 我的评分任务</span>
         <span id="eval-list-summary" style="font-size:12px;color:var(--text-muted)"></span>
       </div>
       <div class="card-body">
-        <div id="eval-target-list" class="target-list"></div>
-        <div id="eval-all-done" style="display:none;text-align:center;padding:40px;">
-          <div style="font-size:48px;margin-bottom:12px">🎉</div>
-          <h3 style="margin-bottom:8px">本轮评分完成！</h3>
-          <p style="color:var(--text-muted);font-size:13px">所有待评分对象均已完成，感谢参与。</p>
-          <button class="btn btn-secondary" style="margin-top:16px" onclick="evaluatorLogout()">重新选择季度</button>
+        <!-- 🔀 双 Tab：区分已评分 / 待评分 -->
+        <div class="tabs" id="eval-list-tabs" style="margin-bottom:16px">
+          <button class="tab-btn active" id="eval-tab-pending" onclick="switchEvalTab('pending')">
+            📝 待评分 <span class="tab-badge pending" id="eval-tab-pending-count">0</span>
+          </button>
+          <button class="tab-btn" id="eval-tab-done" onclick="switchEvalTab('done')">
+            ✅ 已评分 <span class="tab-badge done" id="eval-tab-done-count">0</span>
+          </button>
+        </div>
+
+        <!-- 待评分列表 -->
+        <div id="eval-tab-pending-panel" class="tab-panel active">
+          <div id="eval-pending-list" class="target-list"></div>
+          <div id="eval-pending-empty" style="display:none;text-align:center;padding:40px;color:var(--text-muted)">
+            <div style="font-size:48px;margin-bottom:12px">🎉</div>
+            <h3 style="margin-bottom:8px;color:var(--text)">本轮评分完成！</h3>
+            <p style="font-size:13px">所有待评分对象均已完成，感谢参与。</p>
+            <button class="btn btn-secondary" style="margin-top:16px" onclick="evaluatorLogout()">重新选择季度</button>
+          </div>
+        </div>
+
+        <!-- 已评分列表 -->
+        <div id="eval-tab-done-panel" class="tab-panel">
+          <div id="eval-done-list" class="target-list"></div>
+          <div id="eval-done-empty" style="display:none;text-align:center;padding:40px;color:var(--text-muted);font-size:13px">
+            暂无已评分记录
+          </div>
         </div>
       </div>
     </div>
@@ -2092,54 +2129,107 @@ function getAssignedTargets(evalName, evalGroup) {
   return nameOnly;
 }
 
+// 当前评分人激活的 tab：'pending'（待评分） / 'done'（已评分）
+let currentEvalTab = 'pending';
+
+function switchEvalTab(tab) {
+  currentEvalTab = tab;
+  document.getElementById('eval-tab-pending')?.classList.toggle('active', tab === 'pending');
+  document.getElementById('eval-tab-done')?.classList.toggle('active', tab === 'done');
+  document.getElementById('eval-tab-pending-panel')?.classList.toggle('active', tab === 'pending');
+  document.getElementById('eval-tab-done-panel')?.classList.toggle('active', tab === 'done');
+}
+
 function renderEvaluatorTargets() {
   const targets = getAssignedTargets(currentEvaluator.name, currentEvaluator.group);
   const qLabel = getQuarterLabel(currentQuarter);
-  const done = targets.filter(t => {
-    return appState.scores.some(s =>
-      s.evaluator===currentEvaluator.name &&
-      s.evaluatorGroup===currentEvaluator.group &&
-      quarterKey(s.quarter)===quarterKey(currentQuarter) &&
-      s.targetId===t.targetId
-    );
-  }).length;
-  document.getElementById('eval-list-summary').textContent = `季度：${qLabel}　已完成 ${done} / ${targets.length}`;
-  const list = document.getElementById('eval-target-list');
-  if (targets.length === 0 || targets.every(t =>
-    appState.scores.some(s =>
-      s.evaluator===currentEvaluator.name &&
-      s.evaluatorGroup===currentEvaluator.group &&
-      quarterKey(s.quarter)===quarterKey(currentQuarter) &&
-      s.targetId===t.targetId
-    )
-  )) {
-    list.style.display = 'none';
-    document.getElementById('eval-all-done').style.display = 'block';
-    return;
-  }
-  document.getElementById('eval-all-done').style.display = 'none';
-  list.style.display = 'flex';
-  list.innerHTML = targets.map(t => {
-    const scored = appState.scores.some(s =>
-      s.evaluator===currentEvaluator.name &&
-      s.evaluatorGroup===currentEvaluator.group &&
-      quarterKey(s.quarter)===quarterKey(currentQuarter) &&
-      s.targetId===t.targetId
-    );
-    const member = appState.members.find(m=>m.id===t.targetId);
+
+  // 拆分已评分 / 待评分
+  const isScored = (targetId) => appState.scores.some(s =>
+    s.evaluator === currentEvaluator.name &&
+    s.evaluatorGroup === currentEvaluator.group &&
+    quarterKey(s.quarter) === quarterKey(currentQuarter) &&
+    s.targetId === targetId
+  );
+  const pending = targets.filter(t => !isScored(t.targetId));
+  const done = targets.filter(t => isScored(t.targetId));
+
+  // 顶部汇总 + tab 徽章
+  document.getElementById('eval-list-summary').textContent =
+    `季度：${qLabel}　已完成 ${done.length} / ${targets.length}`;
+  document.getElementById('eval-tab-pending-count').textContent = pending.length;
+  document.getElementById('eval-tab-done-count').textContent = done.length;
+
+  // 单个 target 的渲染（带可识别是已评/待评状态）
+  const renderTarget = (t, scored) => {
+    const member = appState.members.find(m => m.id === t.targetId);
+    const score = scored ? appState.scores.find(s =>
+      s.evaluator === currentEvaluator.name &&
+      s.evaluatorGroup === currentEvaluator.group &&
+      quarterKey(s.quarter) === quarterKey(currentQuarter) &&
+      s.targetId === t.targetId
+    ) : null;
+    const scoreTag = score
+      ? `<span style="color:var(--primary);font-weight:600">${score.total} 分</span>`
+      : '';
     return `<div class="target-item">
       <div class="target-item-info">
         <div class="target-avatar ${t.targetType}">${(t.targetName||'?').slice(0,1)}</div>
         <div>
-          <div class="target-name">${escHtml(t.targetName)}</div>
+          <div class="target-name">${escHtml(t.targetName)} ${scoreTag}</div>
           <div class="target-meta">${escHtml(member?.position||'')} · ${escHtml(member?.group||'')}</div>
         </div>
       </div>
       <div class="target-status">
-        ${scored ? '<span class="status-badge done">✓ 已评分</span><button class="btn btn-outline btn-sm" onclick="editScore(\''+escAttr(t.targetId)+'\')">修改</button>' : '<span class="status-badge pending">待评分</span><button class="btn btn-primary btn-sm" onclick="startEvaluate(\''+escAttr(t.targetId)+'\')">去评分 →</button>'}
+        ${scored
+          ? '<span class="status-badge done">✓ 已评分</span><button class="btn btn-outline btn-sm" onclick="editScore(\''+escAttr(t.targetId)+'\')">修改</button>'
+          : '<span class="status-badge pending">待评分</span><button class="btn btn-primary btn-sm" onclick="startEvaluate(\''+escAttr(t.targetId)+'\')">去评分 →</button>'}
       </div>
     </div>`;
-  }).join('');
+  };
+
+  // 待评分列表
+  const pendingList = document.getElementById('eval-pending-list');
+  const pendingEmpty = document.getElementById('eval-pending-empty');
+  if (pending.length === 0) {
+    pendingList.style.display = 'none';
+    // 仅当确实有评分任务（不是未分配）时，才显示"全部完成"的庆祝
+    pendingEmpty.style.display = (targets.length > 0) ? 'block' : 'none';
+  } else {
+    pendingList.style.display = 'flex';
+    pendingEmpty.style.display = 'none';
+    pendingList.innerHTML = pending.map(t => renderTarget(t, false)).join('');
+  }
+
+  // 已评分列表（按提交时间倒序：最新评的在前面）
+  const doneList = document.getElementById('eval-done-list');
+  const doneEmpty = document.getElementById('eval-done-empty');
+  if (done.length === 0) {
+    doneList.style.display = 'none';
+    doneEmpty.style.display = 'block';
+  } else {
+    doneList.style.display = 'flex';
+    doneEmpty.style.display = 'none';
+    const doneSorted = [...done].sort((a, b) => {
+      const sa = appState.scores.find(s => s.targetId === a.targetId &&
+        s.evaluator === currentEvaluator.name && quarterKey(s.quarter) === quarterKey(currentQuarter));
+      const sb = appState.scores.find(s => s.targetId === b.targetId &&
+        s.evaluator === currentEvaluator.name && quarterKey(s.quarter) === quarterKey(currentQuarter));
+      return new Date(sb?.timestamp || 0) - new Date(sa?.timestamp || 0);
+    });
+    doneList.innerHTML = doneSorted.map(t => renderTarget(t, true)).join('');
+  }
+
+  // 智能切换 tab：
+  //  - 默认显示"待评分"，除非已评完（则自动切到"已评分"）
+  //  - 如果当前 tab 已经没有内容，则切到另一个 tab
+  if (currentEvalTab === 'pending' && pending.length === 0 && done.length > 0) {
+    switchEvalTab('done');
+  } else if (currentEvalTab === 'done' && done.length === 0 && pending.length > 0) {
+    switchEvalTab('pending');
+  } else {
+    switchEvalTab(currentEvalTab);
+  }
 }
 
 // ============================================================
