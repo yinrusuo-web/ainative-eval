@@ -1071,13 +1071,36 @@ async function pushToBin(payload) {
 function mergeRemote(remote) {
   if (!remote) return;
   appState.config = { ...appState.config, ...(remote.config || {}) };
-  // 🛡️ 三方合并：DEFAULT_DATA < 云端 < 本地 appState
-  // 之前直接 if (remote.members) appState.members = remote.members; 会把本地冲成云端的空数组
-  if (remote.quarters && remote.quarters.length) appState.quarters = mergeByKey(mergeByKey(remote.quarters, DEFAULT_DATA.quarters, q => `${q.fy}-Q${q.num}`), appState.quarters, q => `${q.fy}-Q${q.num}`);
-  if (remote.templates && remote.templates.length) appState.templates = mergeByKey(mergeByKey(remote.templates, DEFAULT_DATA.templates, t => t.id), appState.templates, t => t.id);
-  if (remote.members && remote.members.length) appState.members = mergeByKey(mergeByKey(remote.members, DEFAULT_DATA.members, m => m.id), appState.members, m => m.id);
-  if (remote.relations && remote.relations.length) appState.relations = mergeByKey(mergeByKey(remote.relations, DEFAULT_DATA.relations, r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`), appState.relations, r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`);
-  if (remote.scores && remote.scores.length) appState.scores = mergeByKey(mergeByKey(remote.scores, DEFAULT_DATA.scores, s => s.id), appState.scores, s => s.id);
+  // 🛡️ 三方合并：DEFAULT_DATA < 云端 < 本地独有项
+  // 之前是 mergeByKey(... appState ...) 让本地覆盖云端，导致 A 的修改同步不到 B
+  // 现在：先以云端+默认为基础，本地只在"云端没有"的项上追加
+  const mergeCloudDefault = (cloudArr, defaultArr, keyFn) =>
+    mergeByKey(cloudArr || [], defaultArr, keyFn);
+  const appendLocalOnly = (merged, localArr, keyFn) => {
+    if (!localArr || !localArr.length) return merged;
+    const localOnly = localArr.filter(item => !merged.some(m => keyFn(m) === keyFn(item)));
+    return [...merged, ...localOnly];
+  };
+  if (remote.quarters && remote.quarters.length) {
+    const m = mergeCloudDefault(remote.quarters, DEFAULT_DATA.quarters, q => `${q.fy}-Q${q.num}`);
+    appState.quarters = appendLocalOnly(m, appState.quarters, q => `${q.fy}-Q${q.num}`);
+  }
+  if (remote.templates && remote.templates.length) {
+    const m = mergeCloudDefault(remote.templates, DEFAULT_DATA.templates, t => t.id);
+    appState.templates = appendLocalOnly(m, appState.templates, t => t.id);
+  }
+  if (remote.members && remote.members.length) {
+    const m = mergeCloudDefault(remote.members, DEFAULT_DATA.members, m => m.id);
+    appState.members = appendLocalOnly(m, appState.members, m => m.id);
+  }
+  if (remote.relations && remote.relations.length) {
+    const m = mergeCloudDefault(remote.relations, DEFAULT_DATA.relations, r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`);
+    appState.relations = appendLocalOnly(m, appState.relations, r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`);
+  }
+  if (remote.scores && remote.scores.length) {
+    const m = mergeCloudDefault(remote.scores, DEFAULT_DATA.scores, s => s.id);
+    appState.scores = appendLocalOnly(m, appState.scores, s => s.id);
+  }
 }
 
 function setSyncStatus(level, msg) {
