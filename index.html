@@ -272,7 +272,9 @@ select.form-control { cursor: pointer; }
         </div>
         <div class="form-group">
           <label class="form-label">所属小组 *</label>
-          <input type="text" class="form-control" id="eval-group" placeholder="请输入您所在的小组" autocomplete="off">
+          <select class="form-control" id="eval-group">
+            <option value="">— 请选择小组 —</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">选择评分季度 *</label>
@@ -491,6 +493,17 @@ select.form-control { cursor: pointer; }
           </div>
           <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
           <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">🏢 所属小组列表</label>
+            <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">设置评分人登录和成员管理中可选的小组。修改后即时生效。</p>
+            <div id="groups-config-list" style="margin-bottom:10px"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input type="text" class="form-control" id="cfg-new-group" placeholder="输入小组名称" style="max-width:200px">
+              <button class="btn btn-secondary btn-sm" onclick="addGroup()">+ 添加小组</button>
+              <button class="btn btn-danger btn-sm" onclick="removeLastGroup()">删除末项</button>
+            </div>
+          </div>
+          <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+          <div class="form-group" style="margin-bottom:12px">
             <label class="form-label">🔐 管理员密码</label>
             <div style="display:flex;gap:10px">
               <input type="text" class="form-control" id="cfg-admin-pwd" placeholder="设置管理员登录密码" style="max-width:240px">
@@ -626,12 +639,6 @@ select.form-control { cursor: pointer; }
         <label class="form-label">小组 *</label>
         <select class="form-control" id="add-member-group">
           <option value="">— 请选择小组 —</option>
-          <option>产品研发1组</option>
-          <option>产品研发2组</option>
-          <option>综合业务1组</option>
-          <option>综合业务2组</option>
-          <option>职业健康组</option>
-          <option>运维小组</option>
         </select>
       </div>
       <div class="form-group">
@@ -669,7 +676,9 @@ const DEFAULT_CONFIG = {
   adminPassword: 'admin123',
   // 🔗 JSONBin 配置
   binId: '6ab23c4fac6210605ae8a32c',
-  masterKey: '$2a$10$i7aVjFoFY1RNzy/nK677/O5OtZ.JG6IzGDtL7Zmp.soBJEB0vNpcK'
+  masterKey: '$2a$10$i7aVjFoFY1RNzy/nK677/O5OtZ.JG6IzGDtL7Zmp.soBJEB0vNpcK',
+  // 🏢 小组列表：评分人登录、成员管理、批量分配等处的下拉选项均取自此处
+  groups: ['产品研发1组','产品研发2组','综合业务1组','综合业务2组','职业健康组','事业部','运维小组']
 };
 
 // 🛡️ 兜底数据：跨设备/新用户首次访问时直接显示完整名单与评价关系
@@ -1413,6 +1422,11 @@ function showView(id) {
   } else {
     document.getElementById('headerRole').style.display='none';
   }
+  // 🏢 进入评分人登录视图时，动态填充小组下拉（使用管理员配置的列表）
+  if (id === 'evaluator-login') {
+    populateGroupSelect(document.getElementById('eval-group'));
+    populateQuarterSelect(document.getElementById('eval-quarter-select'));
+  }
 }
 
 function switchAdminTab(tab) {
@@ -1741,6 +1755,8 @@ function openAddMember(editId) {
   const isEdit = !!editId;
   const m = isEdit ? appState.members.find(x=>x.id===editId) : null;
   document.getElementById('add-member-name').value = m?.name||'';
+  // 🏢 动态填充小组下拉（取自管理员配置），保留原值（即使不在新列表里）
+  populateGroupSelect(document.getElementById('add-member-group'), { selected: m?.group||'' });
   // 岗位 / 小组：select。如果原值不在新选项里（例如老成员写的是"产品"、"开发"），
   // 显示"— 历史值（不在新列表）：xxx —"提示用户重选，但不强制清空原值。
   const fillSelectPreservingLegacy = (selId, val) => {
@@ -1919,10 +1935,12 @@ function openBatchRelation() {
   const sel = document.getElementById('batch-rel-evaluator');
   sel.innerHTML = '<option value="">— 请选择评分人 —</option>' +
     appState.members.map(m=>`<option value="${escAttr(m.name+'|'+m.group)}">${escHtml(m.name)} (${escHtml(m.group)})</option>`).join('');
-  // Populate group filter
-  const groups = [...new Set(appState.members.map(m=>m.group))].filter(Boolean).sort();
+  // 🏢 小组筛选：优先使用管理员配置的列表（保证一致性），追加成员中出现但配置里没有的小组（兼容历史数据）
+  const configuredGroups = getGroups();
+  const memberGroups = [...new Set(appState.members.map(m=>m.group))].filter(Boolean);
+  const allGroups = [...new Set([...configuredGroups, ...memberGroups])];
   document.getElementById('batch-rel-group-filter').innerHTML = '<option value="">全部小组</option>' +
-    groups.map(g=>`<option value="${escAttr(g)}">${escHtml(g)}</option>`).join('');
+    allGroups.map(g=>`<option value="${escAttr(g)}">${escHtml(g)}</option>`).join('');
   document.getElementById('batch-rel-list').innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px">请先选择评分人</div>';
   openModal('modal-batch-relation');
 }
@@ -1993,7 +2011,7 @@ function populateQuarterSelect() {
 
 function evaluatorLogin() {
   const name = document.getElementById('eval-name').value.trim();
-  const group = document.getElementById('eval-group').value.trim();
+  const group = document.getElementById('eval-group').value;
   const qVal = document.getElementById('eval-quarter-select').value;
   if (!name) { alert('请输入姓名'); return; }
   if (!group) { alert('请输入所属小组'); return; }
@@ -2448,6 +2466,7 @@ function renderConfig() {
   document.getElementById('cfg-bin-id').value = appState.config.binId||'';
   document.getElementById('cfg-master-key').value = appState.config.masterKey||'';
   document.getElementById('cfg-admin-pwd').value = appState.config.adminPassword||'';
+  renderGroupsConfig();
   refreshSyncStatus();
 }
 
@@ -2455,10 +2474,41 @@ function saveConfig() {
   appState.config.binId = document.getElementById('cfg-bin-id').value.trim();
   appState.config.masterKey = document.getElementById('cfg-master-key').value.trim();
   appState.config.adminPassword = document.getElementById('cfg-admin-pwd').value.trim() || 'admin123';
+  // groups 已由 addGroup/removeLastGroup 实时写入 appState.config，无需额外处理
   saveData();
   const saved = document.getElementById('cfg-saved');
   saved.style.display = 'inline';
   setTimeout(() => saved.style.display = 'none', 2000);
+}
+
+function renderGroupsConfig() {
+  const el = document.getElementById('groups-config-list');
+  if (!el) return;
+  const groups = getGroups();
+  el.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px">'
+    + groups.map((g, i) => `<span style="padding:2px 10px;background:#e5e7eb;border-radius:12px;font-size:12px">${escHtml(g)}</span>`).join('')
+    + '</div>';
+}
+
+function addGroup() {
+  const input = document.getElementById('cfg-new-group');
+  const name = input.value.trim();
+  if (!name) { alert('请输入小组名称'); return; }
+  if (!appState.config.groups) appState.config.groups = [...DEFAULT_CONFIG.groups];
+  if (appState.config.groups.includes(name)) { alert('该小组已存在'); return; }
+  appState.config.groups.push(name);
+  saveData();
+  renderGroupsConfig();
+  input.value = '';
+  setSyncStatus('ok', `已添加小组「${name}」`);
+}
+
+function removeLastGroup() {
+  if (!appState.config.groups || appState.config.groups.length === 0) { alert('没有可删除的小组'); return; }
+  const removed = appState.config.groups.pop();
+  saveData();
+  renderGroupsConfig();
+  setSyncStatus('warn', `已删除末项「${removed}」`);
 }
 
 async function manualSync() {
@@ -2482,6 +2532,31 @@ async function manualPush() {
 // ============================================================
 // UTILITIES
 // ============================================================
+// 统一获取小组列表，优先取 appState.config.groups（支持管理员自定义），兜底用 DEFAULT_CONFIG
+function getGroups() {
+  return (appState.config.groups && appState.config.groups.length)
+    ? appState.config.groups
+    : DEFAULT_CONFIG.groups;
+}
+
+// 渲染小组下拉选项（统一复用于评分人登录、成员管理、批量分配等处）
+function populateGroupSelect(selectEl, { includeAll = false, selected = '' } = {}) {
+  if (!selectEl) return;
+  const groups = getGroups();
+  selectEl.innerHTML = '';
+  if (includeAll) {
+    const opt = document.createElement('option');
+    opt.value = ''; opt.textContent = includeAll === true ? '全部小组' : includeAll;
+    selectEl.appendChild(opt);
+  }
+  for (const g of groups) {
+    const opt = document.createElement('option');
+    opt.value = g; opt.textContent = g;
+    if (g === selected) opt.selected = true;
+    selectEl.appendChild(opt);
+  }
+}
+
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
 function escHtml(str) {
