@@ -1036,14 +1036,18 @@ function loadData() {
   if (data && Array.isArray(data.relations)) {
     appState.relations = mergeByKey(data.relations, [], r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`);
   } else {
-    // 新用户（localStorage 为空）→ 拷贝一份 DEFAULT，避免污染常量
-    appState.relations = DEFAULT_DATA.relations.map(r => ({...r}));
+    // 🛡️ 关键修复：新用户不要用 DEFAULT 填充 relations
+    // - 历史 bug：B 清空本地缓存 → loadData 走"新用户"分支 → 把 DEFAULT_DATA.relations 填进 appState
+    //            → lsWrite 写入 _savedAt = 当前时间 → 云端 fetchFromBin 返回 A 的真实数据
+    //            → 我的 _savedAt 防回滚检查误判"本地新于云端" → 跳过 merge → B 永远看到 DEFAULT
+    // - 正确行为：新用户的 relations 留空，等云端拉取（A 的真实关系）覆盖
+    appState.relations = [];
   }
   // 同样的逻辑：scores 也不应被 DEFAULT 自动补全（防止误清空后又被默认值复活）
   if (data && Array.isArray(data.scores)) {
     appState.scores = mergeByKey(data.scores, [], s => s.id);
   } else {
-    appState.scores = (DEFAULT_DATA.scores || []).map(s => ({...s}));
+    appState.scores = [];
   }
 
   // 合并后立即写回 localStorage，下次刷新就不用再合并了
