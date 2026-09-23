@@ -1181,9 +1181,18 @@ function mergeRemote(remote) {
     const m = mergeCloudDefault(remote.members, DEFAULT_DATA.members, m => m.id);
     appState.members = appendLocalOnly(m, appState.members, m => m.id);
   }
-  if (remote.relations && remote.relations.length) {
-    const m = mergeCloudDefault(remote.relations, DEFAULT_DATA.relations, r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`);
-    appState.relations = appendLocalOnly(m, appState.relations, r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`);
+  // 🛡️ 修复 relations merge 的两个 bug：
+  //   bug 1：`if (... .length)` 跳过 cloud=[](A清空) → B 永远清不掉
+  //   bug 2：`mergeCloudDefault(cloud, DEFAULT)` → 把 DEFAULT_DATA.relations 又补回来
+  // - 改为：cloud 是绝对权威（包含 []），只追加"本地独有"项（防 B 在 sync 前添加的项丢失）
+  if (remote.relations !== undefined) {
+    const localArr = appState.relations;
+    appState.relations = remote.relations.slice();
+    if (localArr && localArr.length) {
+      const cloudKeys = new Set(appState.relations.map(r => `${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`));
+      const localOnly = localArr.filter(r => !cloudKeys.has(`${r.evaluator}|${r.evaluatorGroup||''}|${r.targetId}`));
+      appState.relations = [...appState.relations, ...localOnly];
+    }
   }
   if (remote.scores) { // 注意：用 remote.scores 而不是 length，因为云端可能是空数组（管理员已删除全部评分）
     if (remote.scores.length === 0) {
