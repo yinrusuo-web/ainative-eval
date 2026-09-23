@@ -996,6 +996,7 @@ let editingScoreId = null;        // 正在编辑的评分记录ID
 let editMode = false;             // 是否为修改模式
 let isAdminEditing = false;       // 是否为管理员修改
 let _initInProgress = false;      // ⚠️ init 阶段不允许推云端，防止新用户空数据覆盖服务端
+let _pendingCloudFetch = null;   // 🏢 init 阶段云端拉取的 promise，评分人登录时等待它完成，解决同步延迟问题
 
 // ============================================================
 // DATA STORAGE
@@ -2097,13 +2098,27 @@ function populateQuarterSelect() {
     }).join('');
 }
 
-function evaluatorLogin() {
+async function evaluatorLogin() {
   const name = document.getElementById('eval-name').value.trim();
   const group = document.getElementById('eval-group').value;
   const qVal = document.getElementById('eval-quarter-select').value;
   if (!name) { alert('请输入姓名'); return; }
   if (!group) { alert('请输入所属小组'); return; }
   if (!qVal) { alert('请选择评分季度'); return; }
+
+  // 🏢 关键修复：如果 init 阶段的云端拉取尚未完成，等待它完成后再继续
+  // 解决场景：A 电脑修改了评分关系 → B 电脑清空缓存 → 立即以评分人身份登录
+  //          此时云端拉取还在异步进行中，appState 里是旧数据，导致登录失败
+  if (_pendingCloudFetch) {
+    console.log('🏢 等待云端同步完成后再验证登录…');
+    showLoading(true);
+    try {
+      await _pendingCloudFetch;
+    } finally {
+      showLoading(false);
+    }
+  }
+
   const [fy, num] = qVal.split('|').map(Number);
   currentEvaluator = { name, group };
   currentQuarter = { fy, num: parseInt(num) };
@@ -2836,7 +2851,7 @@ window.dumpMembers = function() {
   // - 现在：每次刷新都会拉云端；mergeRemote 已修复"云端赢 + 本地独有项保留"
   if (appState.config.binId) {
     setSyncStatus('syncing', '正在从云端同步数据…');
-    fetchFromBin().then(remote => {
+    _pendingCloudFetch = fetchFromBin().then(remote => {
       if (!remote) {
         setSyncStatus('info', '云端暂无数据');
         return;
@@ -2880,6 +2895,8 @@ window.dumpMembers = function() {
     }).catch(e => {
       console.warn('云端拉取失败：', e.message);
       setSyncStatus('warn', '云端拉取失败，使用本地数据');
+    }).finally(() => {
+      _pendingCloudFetch = null;  // 🏢 拉取完成后清除追踪器
     });
   }
   if (!checkAdminSession()) {
