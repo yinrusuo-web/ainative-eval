@@ -424,6 +424,7 @@ select.form-control { cursor: pointer; }
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-outline btn-sm" onclick="showRelationsDebug()">🔍 调试：原始数据</button>
             <button class="btn btn-primary btn-sm" onclick="openBatchRelation()">🔄 批量分配</button>
+            <button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="clearAllRelations()">🗑️ 清空全部</button>
           </div>
         </div>
         <div class="card-body">
@@ -443,6 +444,7 @@ select.form-control { cursor: pointer; }
               <option value="">全部季度</option>
             </select>
             <button class="btn btn-secondary btn-sm" onclick="exportResults()">📥 导出 CSV</button>
+            <button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="clearTestScores()">🗑️ 删除测试数据</button>
           </div>
         </div>
         <div class="card-body">
@@ -1467,6 +1469,15 @@ function adminLogin() {
     .then(([_, remote]) => {
       if (remote) { mergeRemote(remote); lsWrite(buildPayload()); setSyncStatus('ok','已合并云端数据'); }
       else if (appState.config.binId) setSyncStatus('info','云端暂无新数据');
+      // 🧹 登录时自动清理测试评分（历史季度或未来季度的非正式评分）
+      const curFy = parseInt(new Date().getFullYear().toString().slice(-2));
+      const testScores = appState.scores.filter(s => s.quarter.fy > curFy || s.quarter.fy < curFy - 1);
+      if (testScores.length) {
+        const before = appState.scores.length;
+        appState.scores = appState.scores.filter(s => !(s.quarter.fy > curFy || s.quarter.fy < curFy - 1));
+        console.log(`🧹 清理 ${before - appState.scores.length} 条测试评分`);
+        lsWrite(buildPayload());
+      }
       initDefaultData();
       showView('admin-panel');
       renderAdminStats();
@@ -1831,6 +1842,36 @@ function removeRelation(ev, evg, tid) {
   appState.relations = appState.relations.filter(r=>!(r.evaluator===ev && r.evaluatorGroup===evg && r.targetId===tid));
   saveData();
   renderRelations();
+}
+
+function clearAllRelations() {
+  if (!confirm('确定要清空所有评分关系吗？此操作不可恢复。\n\n成员名单将保留，只删除评价关系。')) return;
+  appState.relations = [];
+  saveData();
+  renderRelations();
+  setSyncStatus('ok', '已清空全部评分关系');
+}
+
+function clearTestScores() {
+  // 识别测试评分：非当前季度（如非 FY26Q3）的评分记录
+  const curFy = parseInt(new Date().getFullYear().toString().slice(-2));
+  const testScores = appState.scores.filter(s => {
+    const isFutureQ = s.quarter.fy > curFy;
+    const isOldQ = s.quarter.fy < curFy - 1;
+    return isFutureQ || isOldQ;
+  });
+  if (testScores.length === 0) {
+    alert('未发现历史测试评分数据，无需清理。');
+    return;
+  }
+  const names = [...new Set(testScores.map(s => s.targetName))].join('、');
+  if (!confirm(`将删除以下 ${testScores.length} 条测试评分记录（被评人：${names}），正式评分不受影响。\n\n确认删除？`)) return;
+  appState.scores = appState.scores.filter(s => !(isFutureQ(s.quarter.fy, curFy) || isOldQ(s.quarter.fy, curFy)));
+  saveData();
+  renderResults();
+  setSyncStatus('ok', `已删除 ${testScores.length} 条测试评分`);
+  function isFutureQ(fy, cur) { return fy > cur; }
+  function isOldQ(fy, cur) { return fy < cur - 1; }
 }
 
 // 调试：弹出窗口显示所有原始关系数据，便于排查"登录看不到任务"
